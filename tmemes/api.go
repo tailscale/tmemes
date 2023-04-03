@@ -7,6 +7,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"expvar"
 	"fmt"
 	"image"
 	"image/draw"
@@ -29,6 +30,7 @@ import (
 	"golang.org/x/image/font"
 	"tailscale.com/client/tailscale"
 	"tailscale.com/client/tailscale/apitype"
+	"tailscale.com/metrics"
 	"tailscale.com/tailcfg"
 	"tailscale.com/tsnet"
 	"tailscale.com/util/singleflight"
@@ -47,6 +49,16 @@ type tmemeServer struct {
 
 	userProfiles            map[tailcfg.UserID]tailcfg.UserProfile
 	lastUpdatedUserProfiles time.Time
+}
+
+var (
+	serveMetrics = &metrics.LabelMap{Label: "type"}
+	macroMetrics = &metrics.LabelMap{Label: "type"}
+)
+
+func init() {
+	expvar.Publish("tmemes_serve_metrics", serveMetrics)
+	expvar.Publish("tmemes_macro_metrics", macroMetrics)
 }
 
 var errNotFound = errors.New("not found")
@@ -120,6 +132,7 @@ func (s *tmemeServer) newMux() *http.ServeMux {
 			http.Error(w, "not found", http.StatusNotFound)
 			return
 		}
+		serveMetrics.Add("static", 1)
 		http.ServeFile(w, r, fp)
 	})))
 	mux.Handle("/", uiMux)
@@ -128,6 +141,7 @@ func (s *tmemeServer) newMux() *http.ServeMux {
 }
 
 func (s *tmemeServer) serveContentTemplate(w http.ResponseWriter, r *http.Request) {
+	serveMetrics.Add("content-template", 1)
 	const apiPath = "/content/template/"
 	if r.Method != "GET" {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -163,6 +177,7 @@ func (s *tmemeServer) serveContentTemplate(w http.ResponseWriter, r *http.Reques
 }
 
 func (s *tmemeServer) serveContentMacro(w http.ResponseWriter, r *http.Request) {
+	serveMetrics.Add("content-macro", 1)
 	const apiPath = "/content/macro/"
 	if r.Method != "GET" {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
@@ -201,22 +216,27 @@ func (s *tmemeServer) serveContentMacro(w http.ResponseWriter, r *http.Request) 
 	}
 
 	if _, err := os.Stat(cachePath); err == nil {
+		macroMetrics.Add("cache-hit", 1)
 		http.ServeFile(w, r, cachePath)
 		return
 	} else {
 		log.Printf("cache file %q not found, generating: %v", cachePath, err)
 	}
-	if _, err, _ := s.macroGenerationSingleFlight.Do(cachePath, func() (string, error) {
+	if _, err, reused := s.macroGenerationSingleFlight.Do(cachePath, func() (string, error) {
+		macroMetrics.Add("cache-miss", 1)
 		return cachePath, s.generateMacro(m, cachePath)
 	}); err != nil {
 		log.Printf("error generating macro %d: %v", m.ID, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	} else if reused {
+		macroMetrics.Add("cache-reused", 1)
 	}
 	http.ServeFile(w, r, cachePath)
 }
 
 func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFile *os.File) (retErr error) {
+	macroMetrics.Add("generate-gif", 1)
 	log.Printf("generating GIF for macro %d", m.ID)
 	start := time.Now()
 	defer func() {
@@ -298,6 +318,7 @@ func (s *tmemeServer) generateMacro(m *tmemes.Macro, cachePath string) (retErr e
 	if ext == ".gif" {
 		return s.generateMacroGIF(m, cachePath, srcFile)
 	}
+	macroMetrics.Add("generate", 1)
 
 	srcImage, _, err := image.Decode(srcFile)
 	if err != nil {
@@ -330,10 +351,12 @@ func (s *tmemeServer) generateMacro(m *tmemes.Macro, cachePath string) (retErr e
 	}()
 	switch ext {
 	case ".jpg", ".jpeg":
+		macroMetrics.Add("generate-jpg", 1)
 		if err := jpeg.Encode(dst, alpha, &jpeg.Options{Quality: 90}); err != nil {
 			return err
 		}
 	case ".png":
+		macroMetrics.Add("generate-png", 1)
 		if err := png.Encode(dst, alpha); err != nil {
 			return err
 		}
@@ -366,6 +389,7 @@ func overlayTextOnImage(dc *gg.Context, tl tmemes.TextLine, bounds image.Rectang
 }
 
 func (s *tmemeServer) serveAPIMacro(w http.ResponseWriter, r *http.Request) {
+	serveMetrics.Add("api-macro", 1)
 	switch r.Method {
 	case "GET":
 		s.serveAPIMacroGet(w, r)
@@ -616,6 +640,7 @@ func (s *tmemeServer) serveAPIMacroPut(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *tmemeServer) serveAPITemplate(w http.ResponseWriter, r *http.Request) {
+	serveMetrics.Add("api-template", 1)
 	switch r.Method {
 	case "GET":
 		s.serveAPITemplateGet(w, r)
@@ -741,6 +766,7 @@ func (s *tmemeServer) serveAPITemplateDelete(w http.ResponseWriter, r *http.Requ
 }
 
 func (s *tmemeServer) serveAPIVote(w http.ResponseWriter, r *http.Request) {
+	serveMetrics.Add("api-vote", 1)
 	switch r.Method {
 	case "GET":
 		s.serveAPIVoteGet(w, r)

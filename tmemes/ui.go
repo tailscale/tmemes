@@ -163,6 +163,7 @@ func getSingleFromIDInPath[T any](path, key string, f func(int) (T, error)) (T, 
 }
 
 func (s *tmemeServer) serveUICreate(w http.ResponseWriter, r *http.Request) {
+	serveMetrics.Add("ui-create", 1)
 	id := strings.TrimPrefix(r.URL.Path, "/create/")
 	if id == "" {
 		http.Error(w, "missing id", http.StatusBadRequest)
@@ -268,6 +269,7 @@ func (s *tmemeServer) serveUICreatePost(w http.ResponseWriter, r *http.Request, 
 }
 
 func (s *tmemeServer) serveUITemplates(w http.ResponseWriter, r *http.Request) {
+	serveMetrics.Add("ui-templates", 1)
 	if r.Method != "GET" {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -315,6 +317,7 @@ func (s *tmemeServer) getCallerID(r *http.Request) tailcfg.UserID {
 }
 
 func (s *tmemeServer) serveUIMacros(w http.ResponseWriter, r *http.Request) {
+	serveMetrics.Add("ui-macros", 1)
 	if r.Method != "GET" {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
@@ -358,6 +361,7 @@ func (s *tmemeServer) serveUIMacros(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *tmemeServer) serveUIUpload(w http.ResponseWriter, r *http.Request) {
+	serveMetrics.Add("ui-upload", 1)
 	if r.Method != "GET" {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
