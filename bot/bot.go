@@ -43,7 +43,7 @@ func NewSlackBot(config *Config) (*SlackBot, error) {
 	}
 
 	if !strings.HasPrefix(config.AppToken, "xapp-") {
-		return nil, fmt.Errorf("SLACK_APP_TOKEN must have the prefix \"xapp-\".")
+		return nil, fmt.Errorf("SLACK_APP_TOKEN must have the prefix \"xapp-\"")
 	}
 
 	if config.BotToken == "" {
@@ -55,7 +55,7 @@ func NewSlackBot(config *Config) (*SlackBot, error) {
 	}
 
 	if !strings.HasPrefix(config.BotToken, "xoxb-") {
-		return nil, fmt.Errorf("SLACK_BOT_TOKEN must have the prefix \"xoxb-\".")
+		return nil, fmt.Errorf("SLACK_BOT_TOKEN must have the prefix \"xoxb-\"")
 	}
 
 	api := slack.New(

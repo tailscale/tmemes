@@ -732,7 +732,7 @@ func (s *tmemeServer) serveAPITemplatePost(w http.ResponseWriter, r *http.Reques
 		return
 	}
 	redirect := fmt.Sprintf("/create/%v", t.ID)
-	http.Redirect(w, r, redirect, 302)
+	http.Redirect(w, r, redirect, http.StatusFound)
 }
 
 func (s *tmemeServer) serveAPITemplateDelete(w http.ResponseWriter, r *http.Request) {
