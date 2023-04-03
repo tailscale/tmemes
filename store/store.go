@@ -288,12 +288,16 @@ func (db *DB) CachePath(m *tmemes.Macro) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	return db.cachePath(m, t), nil
+}
+
+func (db *DB) cachePath(m *tmemes.Macro, t *tmemes.Template) string {
 	key := string(db.cacheSeed)
 	if key == "" {
 		key = "0000"
 	}
 	name := fmt.Sprintf("%s-%d%s", key, m.ID, filepath.Ext(t.Path))
-	return filepath.Join(db.dir, "macros", name), nil
+	return filepath.Join(db.dir, "macros", name)
 }
 
 // AddMacro adds m to the database. It reports an error if m.ID != 0, or
@@ -322,9 +326,12 @@ func (db *DB) AddMacro(m *tmemes.Macro) error {
 func (db *DB) DeleteMacro(id int) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
-	_, ok := db.macros[id]
+	m, ok := db.macros[id]
 	if !ok {
 		return fmt.Errorf("macro %d not found", id)
+	}
+	if t, ok := db.templates[m.TemplateID]; ok {
+		os.Remove(db.cachePath(m, t))
 	}
 	delete(db.macros, id)
 	_, err := db.sqldb.Exec(`DELETE FROM Macros WHERE id = ?`, id)
