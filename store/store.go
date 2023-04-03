@@ -6,9 +6,7 @@ package store
 
 import (
 	"context"
-	"crypto/sha256"
 	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -290,16 +288,12 @@ func (db *DB) CachePath(m *tmemes.Macro) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	bits, err := json.Marshal(m)
-	if err != nil {
-		return "", err
+	key := string(db.cacheSeed)
+	if key == "" {
+		key = "0000"
 	}
-	// TODO: include some build info in the hash so that the cache entries get
-	// invalidated when we change the binary (since that may change how the
-	// various settings are interpreted).
-	sum := sha256.Sum256(append(db.cacheSeed, bits...))
-	file := fmt.Sprintf("%x%s", sum[:], filepath.Ext(t.Path))
-	return filepath.Join(db.dir, "macros", file), nil
+	name := fmt.Sprintf("%s-%d%s", key, m.ID, filepath.Ext(t.Path))
+	return filepath.Join(db.dir, "macros", name), nil
 }
 
 // AddMacro adds m to the database. It reports an error if m.ID != 0, or
