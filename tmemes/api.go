@@ -14,7 +14,9 @@ import (
 	"image/gif"
 	"image/jpeg"
 	"image/png"
+	"io/ioutil"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -24,6 +26,7 @@ import (
 	"time"
 
 	"github.com/fogleman/gg"
+	"github.com/golang/freetype/truetype"
 	"github.com/tailscale/tmemes"
 	"github.com/tailscale/tmemes/store"
 	"golang.org/x/exp/slices"
@@ -42,6 +45,8 @@ type tmemeServer struct {
 	lc        *tailscale.LocalClient
 	superUser map[string]bool // logins of admin users
 	staticDir string          // static assets not reachable from embed
+
+	fontCache sync.Map // fontSize (int) -> *truetype.Font
 
 	macroGenerationSingleFlight singleflight.Group[string, string]
 
@@ -251,19 +256,16 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 	if err != nil {
 		return err
 	}
-	font, err := s.fontForImage(srcGif.Image[0])
-	if err != nil {
-		return err
-	}
 
 	if len(srcGif.Image) == 0 {
 		return errors.New("no frames in GIF")
 	}
 	bounds := srcGif.Image[0].Bounds()
 	dc := gg.NewContext(bounds.Dx(), bounds.Dy())
-	dc.SetFontFace(font)
 	for _, t := range m.TextOverlay {
-		overlayTextOnImage(dc, t, bounds)
+		if err := s.overlayTextOnImage(dc, t, bounds); err != nil {
+			return err
+		}
 	}
 	img := dc.Image()
 	// Add text to each frame of the GIF
@@ -305,10 +307,30 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 	return dstFile.Close()
 }
 
-func (s *tmemeServer) fontForImage(img image.Image) (font.Face, error) {
+func fontSizeForImage(img image.Image) int {
 	const typeHeightFraction = 0.15
-	fontSize := (float64(img.Bounds().Dy()) * 0.75) * typeHeightFraction
-	return gg.LoadFontFace(filepath.Join(s.staticDir, "font", "Oswald-SemiBold.ttf"), fontSize)
+	points := int(math.Round((float64(img.Bounds().Dy()) * 0.75) * typeHeightFraction))
+	return points
+}
+
+func (s *tmemeServer) fontForSize(points int) (font.Face, error) {
+	if f, ok := s.fontCache.Load(points); ok {
+		return f.(font.Face), nil
+	}
+	path := filepath.Join(s.staticDir, "font", "Oswald-SemiBold.ttf")
+	fontBytes, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	f, err := truetype.Parse(fontBytes)
+	if err != nil {
+		return nil, err
+	}
+	face := truetype.NewFace(f, &truetype.Options{
+		Size: float64(points),
+	})
+	s.fontCache.Store(points, face)
+	return face, nil
 }
 
 func (s *tmemeServer) generateMacro(m *tmemes.Macro, cachePath string) (retErr error) {
@@ -334,15 +356,12 @@ func (s *tmemeServer) generateMacro(m *tmemes.Macro, cachePath string) (retErr e
 		return err
 	}
 
-	font, err := s.fontForImage(srcImage)
-	if err != nil {
-		return err
-	}
 	dc := gg.NewContext(srcImage.Bounds().Dx(), srcImage.Bounds().Dy())
-	dc.SetFontFace(font)
 	bounds := srcImage.Bounds()
 	for _, tl := range m.TextOverlay {
-		overlayTextOnImage(dc, tl, bounds)
+		if err := s.overlayTextOnImage(dc, tl, bounds); err != nil {
+			return err
+		}
 	}
 
 	alpha := image.NewNRGBA(bounds)
@@ -383,11 +402,18 @@ func oneForZero(v float64) float64 {
 	return v
 }
 
-func overlayTextOnImage(dc *gg.Context, tl tmemes.TextLine, bounds image.Rectangle) {
+func (s *tmemeServer) overlayTextOnImage(dc *gg.Context, tl tmemes.TextLine, bounds image.Rectangle) error {
 	text := strings.TrimSpace(tl.Text)
 	if text == "" {
-		return
+		return nil
 	}
+
+	fontSize := fontSizeForImage(bounds)
+	font, err := s.fontForSize(fontSize)
+	if err != nil {
+		return err
+	}
+	dc.SetFontFace(font)
 
 	width := oneForZero(tl.Field.Width) * float64(bounds.Dx())
 	lineSpacing := 1.5
@@ -399,6 +425,16 @@ func overlayTextOnImage(dc *gg.Context, tl tmemes.TextLine, bounds image.Rectang
 	// Replicate part of the DrawStringWrapped logic so that we can draw the
 	// text multiple times to create an outline effect.
 	lines := dc.WordWrap(text, width)
+
+	for len(lines) > 2 && fontSize > 6 {
+		fontSize--
+		font, err = s.fontForSize(fontSize)
+		if err != nil {
+			return err
+		}
+		dc.SetFontFace(font)
+		lines = dc.WordWrap(text, width)
+	}
 
 	// sync h formula with MeasureMultilineString
 	h := float64(len(lines)) * fontHeight * lineSpacing
@@ -426,6 +462,7 @@ func overlayTextOnImage(dc *gg.Context, tl tmemes.TextLine, bounds image.Rectang
 		dc.DrawStringAnchored(line, x, y, ax, ay)
 		y += fontHeight * lineSpacing
 	}
+	return nil
 }
 
 func (s *tmemeServer) serveAPIMacro(w http.ResponseWriter, r *http.Request) {
