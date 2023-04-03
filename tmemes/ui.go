@@ -8,6 +8,7 @@ import (
 	"context"
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/fs"
@@ -431,4 +432,56 @@ func sortMacros(key string, ms []*tmemes.Macro) error {
 		return fmt.Errorf("invalid sort order %q", key)
 	}
 	return nil
+}
+
+// parsePageOptions parses "page" and "count" query parameters from r if they
+// are present. If they are present, they give the page > 0 and count > 0 that
+// the endpoint should return. Otherwise, page < 0 and count = 0. If the count
+// parameter is not specified or is 0, defaultCount is returned.
+// It is an error if these parameters are present but invalid.
+func parsePageOptions(r *http.Request, defaultCount int) (page, count int, _ error) {
+	pageStr := r.FormValue("page")
+	if pageStr == "" {
+		return -1, 0, nil // pagination not requested (ignore count)
+	}
+	page, err := strconv.Atoi(pageStr)
+	if err != nil {
+		return -1, 0, fmt.Errorf("invalid page: %w", err)
+	} else if page <= 0 {
+		return -1, 0, errors.New("page must be positive")
+	}
+
+	countStr := r.FormValue("count")
+	if countStr == "" {
+		return page, defaultCount, nil
+	}
+	count, err = strconv.Atoi(countStr)
+	if err != nil {
+		return -1, 0, fmt.Errorf("invalid count: %w", err)
+	} else if count < 0 {
+		return -1, 0, errors.New("count must be non-negative")
+	}
+
+	if count == 0 {
+		return page, defaultCount, nil
+	}
+	return page, count, nil
+}
+
+// slicePage returns the subslice of vs corresponding to the page and count
+// parameters (as returned by parsePageOptions), or nil if the page and count
+// are past the end of vs.
+func slicePage[T any, S ~[]T](vs S, page, count int) S {
+	if page < 0 {
+		return vs // take the whole input, no pagination
+	}
+	start := (page - 1) * count
+	end := start + count
+	if start >= len(vs) {
+		return nil // the page starts after the end of vs
+	}
+	if end > len(vs) {
+		end = len(vs)
+	}
+	return vs[start:end]
 }

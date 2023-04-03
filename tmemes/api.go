@@ -512,19 +512,6 @@ func (s *tmemeServer) serveAPIMacroPost(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-func parseIntOrDefault(s, label string, dflt int) (int, error) {
-	if s == "" {
-		return dflt, nil
-	}
-	v, err := strconv.Atoi(s)
-	if err != nil {
-		return 0, err
-	} else if v < 0 {
-		return v, errors.New("invalid " + label)
-	}
-	return v, nil
-}
-
 func creatorUserID(r *http.Request) (tailcfg.UserID, error) {
 	c := r.URL.Query().Get("creator")
 	if c == "" {
@@ -578,37 +565,18 @@ func (s *tmemeServer) serveAPIMacroGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Check for pagination parameters. If none are present, ship everything.
-	// Otherwise, start at the given "page" and return up to "count" results,
-	// where pages are multiples of count results.
-	page, err := parseIntOrDefault(r.FormValue("page"), "page", -1)
+	// Handle pagination.
+	page, count, err := parsePageOptions(r, 20)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	count, err := parseIntOrDefault(r.FormValue("count"), "count", 20)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	if page > 0 {
-		start := (page - 1) * count
-		end := start + count
-		if start >= len(all) {
-			all = nil
-		} else {
-			if end > len(all) {
-				end = len(all)
-			}
-			all = all[start:end]
-		}
-	}
+	pageItems := slicePage(all, page, count)
 
 	rsp := struct {
 		M []*tmemes.Macro `json:"macros"`
 		N int             `json:"total"`
-	}{M: all, N: total}
+	}{M: pageItems, N: total}
 	if err := json.NewEncoder(w).Encode(rsp); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -722,10 +690,18 @@ func (s *tmemeServer) serveAPITemplateGet(w http.ResponseWriter, r *http.Request
 	}
 	total := len(all)
 
+	// Handle pagination.
+	page, count, err := parsePageOptions(r, 20)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	pageItems := slicePage(all, page, count)
+
 	rsp := struct {
 		T []*tmemes.Template `json:"templates"`
 		N int                `json:"total"`
-	}{T: all, N: total}
+	}{T: pageItems, N: total}
 	if err := json.NewEncoder(w).Encode(rsp); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
