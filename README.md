@@ -170,3 +170,4 @@ Add anything you think should be done, even if you don't want to do it yourself.
 - [ ] (jenny) support pagination in the frontend
 - [ ] (jenny) support toggling sort order in the frontend
 - [ ] (jenny) support showing memes per creator
+- [ ] (mjf) support long polling to refresh the UI, like a websocket or SSE
