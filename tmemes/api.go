@@ -20,6 +20,8 @@ import (
 	"time"
 
 	"github.com/fogleman/gg"
+	"github.com/tailscale/tmemes"
+	"github.com/tailscale/tmemes/store"
 	"golang.org/x/exp/slices"
 	"golang.org/x/image/font"
 	"tailscale.com/client/tailscale"
@@ -27,8 +29,6 @@ import (
 	"tailscale.com/tailcfg"
 	"tailscale.com/tsnet"
 	"tailscale.com/util/singleflight"
-	"tailscale.io/tmemes"
-	"tailscale.io/tmemes/store"
 )
 
 type tmemeServer struct {

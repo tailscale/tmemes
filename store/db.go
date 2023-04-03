@@ -13,8 +13,8 @@ import (
 
 	_ "embed"
 
+	"github.com/tailscale/tmemes"
 	"golang.org/x/sys/unix"
-	"tailscale.io/tmemes"
 )
 
 //go:embed schema.sql

@@ -11,10 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/tailscale/tmemes/bot"
+	"github.com/tailscale/tmemes/store"
 	"tailscale.com/tsnet"
 	"tailscale.com/types/logger"
-	"tailscale.io/tmemes/bot"
-	"tailscale.io/tmemes/store"
 
 	_ "modernc.org/sqlite"
 )

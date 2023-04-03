@@ -16,10 +16,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/tailscale/tmemes"
 	"golang.org/x/exp/slices"
 	"tailscale.com/tailcfg"
 	"tailscale.com/words"
-	"tailscale.io/tmemes"
 )
 
 //go:embed ui/*

@@ -17,9 +17,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/tailscale/tmemes"
 	"golang.org/x/exp/maps"
 	"tailscale.com/tailcfg"
-	"tailscale.io/tmemes"
 )
 
 var subdirs = []string{"templates", "macros"}
