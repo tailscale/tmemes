@@ -6,7 +6,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"net/http"
 	"os/signal"
@@ -83,15 +82,10 @@ func main() {
 		panic(err)
 	}
 
-	staticDir, err := unpackStaticAssets(*storeDir)
-	if err != nil {
-		panic(fmt.Sprintf("Unpacking static assets: %v", err))
-	}
 	ms := &tmemeServer{
-		db:        db,
-		srv:       s,
-		lc:        lc,
-		staticDir: staticDir,
+		db:  db,
+		srv: s,
+		lc:  lc,
 	}
 	if *adminUsers != "" {
 		ms.superUser = make(map[string]bool)

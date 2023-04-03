@@ -11,10 +11,8 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io/fs"
 	"log"
 	"net/http"
-	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -382,29 +380,6 @@ func (s *tmemeServer) serveCSS(w http.ResponseWriter, r *http.Request) {
 
 func (s *tmemeServer) serveJS(w http.ResponseWriter, r *http.Request) {
 	http.ServeContent(w, r, "script.js", time.Now(), strings.NewReader(scriptJS))
-}
-
-// unpackStaticAssets copies embedded static assets to local disk.  Right now
-// this is mainly needed for the rendering library, which does not support the
-// fs.FS interface. Don't use this mechanism unless you need to.
-func unpackStaticAssets(dir string) (string, error) {
-	err := fs.WalkDir(staticFS, "static", func(path string, e fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		} else if e.IsDir() {
-			return nil
-		}
-		op := filepath.Join(dir, path)
-		if err := os.MkdirAll(filepath.Dir(op), 0700); err != nil {
-			return err
-		}
-		data, err := fs.ReadFile(staticFS, path)
-		if err != nil {
-			return err
-		}
-		return os.WriteFile(op, data, 0600)
-	})
-	return filepath.Join(dir, "static"), err
 }
 
 // sortMacros sorts a slice of macros in-place by the specified sorting key.

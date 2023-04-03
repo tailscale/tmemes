@@ -14,7 +14,6 @@ import (
 	"image/gif"
 	"image/jpeg"
 	"image/png"
-	"io/ioutil"
 	"log"
 	"math"
 	"net/http"
@@ -44,7 +43,6 @@ type tmemeServer struct {
 	srv       *tsnet.Server
 	lc        *tailscale.LocalClient
 	superUser map[string]bool // logins of admin users
-	staticDir string          // static assets not reachable from embed
 
 	fontCache sync.Map // fontSize (int) -> *truetype.Font
 
@@ -131,15 +129,7 @@ func (s *tmemeServer) newMux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiMux)
 	mux.Handle("/content/", contentMux)
-	mux.Handle("/static/", http.StripPrefix("/static", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fp := filepath.Join(s.staticDir, r.URL.Path)
-		if fs, err := os.Stat(fp); err != nil || fs.IsDir() {
-			http.Error(w, "not found", http.StatusNotFound)
-			return
-		}
-		serveMetrics.Add("static", 1)
-		http.ServeFile(w, r, fp)
-	})))
+	mux.Handle("/static/", http.FileServer(http.FS(staticFS)))
 	mux.Handle("/", uiMux)
 
 	return mux
@@ -317,8 +307,7 @@ func (s *tmemeServer) fontForSize(points int) (font.Face, error) {
 	if f, ok := s.fontCache.Load(points); ok {
 		return f.(font.Face), nil
 	}
-	path := filepath.Join(s.staticDir, "font", "Oswald-SemiBold.ttf")
-	fontBytes, err := ioutil.ReadFile(path)
+	fontBytes, err := staticFS.ReadFile("static/font/Oswald-SemiBold.ttf")
 	if err != nil {
 		return nil, err
 	}
