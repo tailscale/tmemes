@@ -20,7 +20,6 @@ private repository, but it doesn't depend on anything proprietary.
 
 ## Synopsis
 
-
 `tmemes` is a web app built mainly in Go and running on `tsnet`. This is a very
 terse description of how it all works.
 
@@ -71,7 +70,7 @@ The server exposes an API over HTTP. There are three buckets of methods:
   admin, or the user who created a macro, can delete it. Anonymous macros can
   only be deleted by server admins.
 
-- `POST /api/macro` create a new macro.  The `POST` body must be a JSON
+- `POST /api/macro` create a new macro. The `POST` body must be a JSON
   `tmemes.Macro` object (`types.go`).
 
 - `PUT /api/macro/:id/upvote` and `PUT /api/macro/:id/downvote` to set an
@@ -168,3 +167,6 @@ Add anything you think should be done, even if you don't want to do it yourself.
 - [ ] (mjf) more flexible text placement in the UU (more lines, locations)
 - [ ] (mjf) support pagination for /api/templates too
 - [x] (mjf) paint text with a contrast-colour outline
+- [ ] (jenny) support pagination in the frontend
+- [ ] (jenny) support toggling sort order in the frontend
+- [ ] (jenny) support showing memes per creator
