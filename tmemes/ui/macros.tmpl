@@ -1,0 +1,34 @@
+<!doctype html>
+<html><head>
+  <title>tmemes: putting the meme in TS</title>
+  <link rel="stylesheet" type="text/css" href="/style.css" />
+</head>
+<body id="macros">
+{{template "nav.tmpl" "macro"}}
+<div class="container">
+  {{ $caller := .CallerID }}
+  <h1>Macros</h1>
+  <div class="meme-list">
+    {{range .Macros}}
+    <div class="meme">
+      <div class="meta byline">
+      Posted by {{.CreatorName}} at {{timestamp .CreatedAt}}
+      </div>
+      <a href="/macros/{{.ID}}" src="link to macro {{.ID}}">
+        <img src="{{.ImageURL}}" />
+      </a>
+      <div class="meta actions">
+        <button title="upvote" class="upvote macro {{if .Upvoted}}upvoted{{end}}" upvote-id="{{.ID}}">{{.Upvotes}}</button>
+        <button title="downvote" class="downvote macro {{if .Downvoted}}downvoted{{end}}" downvote-id="{{.ID}}">{{.Downvotes}}</button>
+        {{ if eq $caller .CreatorID }}
+          <button class="delete macro" delete-id="{{.ID}}">Delete</button>
+        {{end}}
+      </div>
+
+    </div>
+    {{end}}
+  </div>
+</div>
+</body>
+<script src="/script.js"></script>
+</html>

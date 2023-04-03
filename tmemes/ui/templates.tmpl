@@ -1,0 +1,31 @@
+<!doctype html>
+<html><head>
+  <title>tmemes: putting the meme in TS</title>
+  <link rel="stylesheet" type="text/css" href="/style.css" />
+</head>
+<body id="templates">
+{{template "nav.tmpl" "templates"}}
+<div class="container">
+  <h1>Templates</h1>
+  <div class="meme-list">
+    {{ $caller := .CallerID }}
+    {{range .Templates}}
+    <div class="meme template-link">
+      <div class="meta byline">
+        Posted by {{.CreatorName}} at {{timestamp .CreatedAt}}
+      </div>
+      <a href="/create/{{.ID}}" alt="Create your own version of {{.Name}}">
+        <img src="{{.ImageURL}}" />
+      </a>
+      <div class="meta actions">
+      {{ if eq $caller .CreatorID }}
+        <button class="delete template" delete-id="{{.ID}}">delete</button>
+      {{end}}
+      </div>
+    </div>
+    {{- end}}
+  </div>
+</div>
+</body>
+<script src="/script.js"></script>
+</html>

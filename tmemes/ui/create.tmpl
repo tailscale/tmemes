@@ -1,0 +1,28 @@
+<!doctype html>
+<html><head>
+  <title>tmemes: putting the meme in TS</title>
+  <link rel="stylesheet" type="text/css" href="/style.css" />
+</head>
+<body id="create">
+{{template "nav.tmpl" ""}}
+<div class="container">
+  <h1>Create your own version of {{.Name}}</h1>
+  <div class="create">
+    <div class="image-container">
+      <img id="preview-fallback" src="{{.ImageURL}}" />
+      <canvas id="preview" />
+    </div>
+    <div class="create-data">
+      <div class="text-entry">
+        <label for="top">Top line of text:</label> <input id="top" />
+        <label for="bottom">Bottom line of text:</label> <input id="bottom" />
+        <label for="anon">Anonymous?</label> <span><input id="anon" type="checkbox" /></span>
+      </div>
+      <button class="button submit" id="submit">Upload</button>
+    </div>
+  </div>
+</div>
+</body>
+<script src="/script.js"></script>
+</html>
+

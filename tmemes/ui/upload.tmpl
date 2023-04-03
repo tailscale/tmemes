@@ -1,0 +1,58 @@
+<!doctype html>
+<html><head>
+  <title>tmemes: putting the meme in TS</title>
+  <link rel="stylesheet" type="text/css" href="/style.css" />
+</head>
+<body id="upload">
+{{template "nav.tmpl" "upload"}}
+<div class="container">
+<h1>Upload a Template</h1>
+<form id=upload method=POST enctype="multipart/form-data" action="/api/template">
+ <div class="form-input">
+   <label for=name>Template name (required):</label>
+   <input type=text size=64 name=name required />
+ </div>
+ <div class="form-input">
+   <img id=image-preview />
+   <label for=image>Image (GIF, PNG, or JPG):</label>
+   <input type=file name=image id=image required />
+ </div>
+ <div class="form-input">
+   <input type=checkbox name=anon value="true" />
+   <label for=anon>Anonymous</label>
+ </div>
+ <div class="form-input">
+   <button class="button">Upload</button>
+ </div>
+</form>
+</div>
+</body>
+<script>
+document.body.addEventListener("drop", e => { e.preventDefault(); e.stopPropagation(); });
+document.body.addEventListener("dragenter", e => { e.preventDefault(); e.stopPropagation(); });
+document.body.addEventListener("dragover", e => { e.preventDefault(); e.stopPropagation(); });
+document.body.addEventListener("dragleave", e => { e.preventDefault(); e.stopPropagation(); });
+document.body.addEventListener("dragenter", () => { document.body.classList.add("highlight"); });
+document.body.addEventListener("dragover", () => { document.body.classList.add("highlight"); });
+document.body.addEventListener("drop", () => { document.body.classList.remove("highlight"); });
+document.body.addEventListener("dragleave", () => { document.body.classList.remove("highlight"); });
+
+function drop(e) {
+  if (!e.dataTransfer) {
+    return;
+  }
+  document.getElementById("image").files = e.dataTransfer.files;
+  preview();
+}
+
+function preview(e) {
+  let [f] = document.getElementById("image").files;
+  if (f) {
+    document.getElementById("image-preview").src = URL.createObjectURL(f);
+  }
+}
+
+document.body.addEventListener("drop", drop);
+document.getElementById("image").addEventListener("change", preview);
+</script>
+</html>
