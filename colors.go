@@ -1,3 +1,6 @@
+// Copyright (c) Tailscale Inc & AUTHORS
+// SPDX-License-Identifier: BSD-3-Clause
+
 package tmemes
 
 // n2c maps color names to their equivalent hex strings in standard web RGB

@@ -1,3 +1,6 @@
+// Copyright (c) Tailscale Inc & AUTHORS
+// SPDX-License-Identifier: BSD-3-Clause
+
 // Package tmemes defines a meme generator, putting the meme in TS.
 //
 // This package defines shared data types used throughout the service.
