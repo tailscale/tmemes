@@ -26,7 +26,7 @@ import (
 var (
 	adminUsers     = flag.String("admin", "", "Users with admin rights (comma-separated logins)")
 	cacheSeed      = flag.String("cache-seed", "", "Hash seed used to generate cache keys")
-	hostName       = flag.String("hostname", "tsrecorder", "The TS hostname to use for the server")
+	hostName       = flag.String("hostname", "tmemes", "The TS hostname to use for the server")
 	storeDir       = flag.String("store", "/tmp/tmemes", "Storage directory (required)")
 	maxImageSize   = flag.Int64("max-image-size", 4, "Maximum image size in MiB")
 	enableSlackBot = flag.Bool("enable-slack-bot", false, "Enable Slack bot")
