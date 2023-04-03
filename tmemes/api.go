@@ -385,7 +385,7 @@ func overlayTextOnImage(dc *gg.Context, tl tmemes.TextLine, bounds image.Rectang
 	x := tl.Field.X * float64(bounds.Dx())
 	y := tl.Field.Y * float64(bounds.Dy())
 	ax := 0.5
-	ay := 0.5
+	ay := 1.0
 	fontHeight := dc.FontHeight()
 	// Replicate part of the DrawStringWrapped logic so that we can draw the
 	// text multiple times to create an outline effect.
@@ -394,6 +394,7 @@ func overlayTextOnImage(dc *gg.Context, tl tmemes.TextLine, bounds image.Rectang
 	// sync h formula with MeasureMultilineString
 	h := float64(len(lines)) * fontHeight * lineSpacing
 	h -= (lineSpacing - 1) * fontHeight
+	y -= 0.5 * h
 
 	for _, line := range lines {
 		c := tl.StrokeColor
@@ -406,7 +407,7 @@ func overlayTextOnImage(dc *gg.Context, tl tmemes.TextLine, bounds image.Rectang
 					// give it rounded corners
 					continue
 				}
-				dc.DrawStringAnchored(text, x+float64(dx), y+float64(dy), ax, ay)
+				dc.DrawStringAnchored(line, x+float64(dx), y+float64(dy), ax, ay)
 			}
 		}
 
