@@ -379,13 +379,43 @@ func overlayTextOnImage(dc *gg.Context, tl tmemes.TextLine, bounds image.Rectang
 	if text == "" {
 		return
 	}
-	c := tl.Color
-	dc.SetRGB(c.R(), c.G(), c.B())
 
+	width := oneForZero(tl.Field.Width) * float64(bounds.Dx())
+	lineSpacing := 1.5
 	x := tl.Field.X * float64(bounds.Dx())
 	y := tl.Field.Y * float64(bounds.Dy())
-	width := oneForZero(tl.Field.Width) * float64(bounds.Dx())
-	dc.DrawStringWrapped(text, x, y, 0.5, 0.5, width, 1.5, gg.AlignCenter)
+	ax := 0.5
+	ay := 0.5
+	fontHeight := dc.FontHeight()
+	// Replicate part of the DrawStringWrapped logic so that we can draw the
+	// text multiple times to create an outline effect.
+	lines := dc.WordWrap(text, width)
+
+	// sync h formula with MeasureMultilineString
+	h := float64(len(lines)) * fontHeight * lineSpacing
+	h -= (lineSpacing - 1) * fontHeight
+
+	for _, line := range lines {
+		c := tl.StrokeColor
+		dc.SetRGB(c.R(), c.G(), c.B())
+
+		n := 6 // visible outline size
+		for dy := -n; dy <= n; dy++ {
+			for dx := -n; dx <= n; dx++ {
+				if dx*dx+dy*dy >= n*n {
+					// give it rounded corners
+					continue
+				}
+				dc.DrawStringAnchored(text, x+float64(dx), y+float64(dy), ax, ay)
+			}
+		}
+
+		c = tl.Color
+		dc.SetRGB(c.R(), c.G(), c.B())
+
+		dc.DrawStringAnchored(line, x, y, ax, ay)
+		y += fontHeight * lineSpacing
+	}
 }
 
 func (s *tmemeServer) serveAPIMacro(w http.ResponseWriter, r *http.Request) {

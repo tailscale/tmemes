@@ -1,8 +1,8 @@
 (function () {
   // globals required by draw()
-  let ctx;
-  let canvas;
-  let fallback;
+  /** @type {CanvasRenderingContext2D} */ let ctx;
+  /** @type {HTMLCanvasElement} */ let canvas;
+  /** @type {HTMLImageElement} */ let fallback;
 
   function readTextValues() {
     const top = document.getElementById("top").value;
@@ -18,6 +18,7 @@
           width: 1,
         },
         color: "white",
+        strokeColor: "black",
       });
     }
     if (bottom !== "") {
@@ -29,6 +30,7 @@
           width: 1,
         },
         color: "white",
+        strokeColor: "black",
       });
     }
     return { overlays, anon };
@@ -43,6 +45,10 @@
       const x = field.x * fallback.naturalWidth;
       const y = field.y * fallback.naturalHeight;
       const width = field.width * fallback.naturalWidth;
+      ctx.strokeStyle = overlay.strokeColor;
+      ctx.lineWidth = 12;
+      ctx.textBaseline = "middle";
+      ctx.strokeText(text, x, y, width);
       ctx.fillStyle = overlay.color;
       ctx.fillText(text, x, y, width);
     }

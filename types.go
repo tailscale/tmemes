@@ -62,9 +62,10 @@ type Area struct {
 
 // A TextLine is a single line of text with an optional alignment.
 type TextLine struct {
-	Text  string `json:"text"`
-	Field Area   `json:"field"`
-	Color Color  `json:"color"`
+	Text        string `json:"text"`
+	Field       Area   `json:"field"`
+	Color       Color  `json:"color"`
+	StrokeColor Color  `json:"strokeColor"`
 
 	// TODO: size, typeface, linebreaks in long runs
 }

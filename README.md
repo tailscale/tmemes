@@ -167,4 +167,4 @@ Add anything you think should be done, even if you don't want to do it yourself.
 - [ ] (mjf) allow text colour and scale to be adjusted in the UI
 - [ ] (mjf) more flexible text placement in the UU (more lines, locations)
 - [ ] (mjf) support pagination for /api/templates too
-- [ ] (mjf) paint text with a contrast-colour outline
+- [x] (mjf) paint text with a contrast-colour outline
