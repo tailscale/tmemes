@@ -267,15 +267,24 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 	}
 	img := dc.Image()
 	// Add text to each frame of the GIF
-	for i, frame := range srcGif.Image {
-		// Create a new image context
-		pt := image.NewPaletted(frame.Bounds(), frame.Palette)
-		draw.Draw(pt, frame.Bounds(), frame, frame.Bounds().Min, draw.Src)
 
-		draw.Draw(pt, bounds, img, bounds.Min, draw.Over)
-		// Update the frame
-		srcGif.Image[i] = pt
+	var wg sync.WaitGroup
+	for i := range srcGif.Image {
+		i := i
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			frame := srcGif.Image[i]
+			// Create a new image context
+			pt := image.NewPaletted(frame.Bounds(), frame.Palette)
+			draw.Draw(pt, frame.Bounds(), frame, frame.Bounds().Min, draw.Src)
+
+			draw.Draw(pt, bounds, img, bounds.Min, draw.Over)
+			// Update the frame
+			srcGif.Image[i] = pt
+		}()
 	}
+	wg.Wait()
 
 	// Save the modified GIF
 	dstFile, err := os.Create(cachePath)
