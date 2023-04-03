@@ -89,17 +89,17 @@ func (s *tmemeServer) newUIData(ctx context.Context, templates []*tmemes.Templat
 		data.Templates = append(data.Templates, ut)
 		tid[t.ID] = ut
 	}
+	uv, err := s.db.UserVotes(caller)
+	if err != nil {
+		log.Printf("error getting user votes: %v", err)
+	}
 
 	for _, m := range macros {
 		mt := tid[m.TemplateID]
 		if mt == nil {
 			continue // skip macros whose template isn't loaded
 		}
-		vote, err := s.db.GetVote(ctx, caller, m.ID)
-		if err != nil {
-			log.Printf("error getting vote for %d: %v", m.ID, err)
-			continue
-		}
+		vote := uv[m.ID]
 		um := &uiMacro{
 			Macro:       m,
 			Template:    mt,

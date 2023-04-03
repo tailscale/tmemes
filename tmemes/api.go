@@ -203,10 +203,13 @@ func (s *tmemeServer) serveContentMacro(w http.ResponseWriter, r *http.Request) 
 	if _, err := os.Stat(cachePath); err == nil {
 		http.ServeFile(w, r, cachePath)
 		return
+	} else {
+		log.Printf("cache file %q not found, generating: %v", cachePath, err)
 	}
 	if _, err, _ := s.macroGenerationSingleFlight.Do(cachePath, func() (string, error) {
 		return cachePath, s.generateMacro(m, cachePath)
 	}); err != nil {
+		log.Printf("error generating macro %d: %v", m.ID, err)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
