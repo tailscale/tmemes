@@ -193,8 +193,9 @@ func (s *tmemeServer) serveContentMacro(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	// Require that the requested extension match how the file is stored.
-	if !strings.HasSuffix(cachePath, ext) {
+	// Require that the requested extension (if there is one) match how the file
+	// is stored.
+	if ext != "" && !strings.HasSuffix(cachePath, ext) {
 		http.Error(w, "wrong file extension", http.StatusBadRequest)
 		return
 	}
