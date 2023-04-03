@@ -67,8 +67,12 @@ The server exposes an API over HTTP. There are three buckets of methods:
 
 ### Methods
 
-- `(GET|POST|DELETE) /api/macro/:id` get, set, delete one macro by ID.
-  The `POST` body is a JSON `tmemes.Macro` object (`types.go`).
+- `(GET|DELETE) /api/macro/:id` get or delete one macro by ID. Only a server
+  admin, or the user who created a macro, can delete it. Anonymous macros can
+  only be deleted by server admins.
+
+- `POST /api/macro` create a new macro.  The `POST` body must be a JSON
+  `tmemes.Macro` object (`types.go`).
 
 - `PUT /api/macro/:id/upvote` and `PUT /api/macro/:id/downvote` to set an
   upvote or downvote for a single macro by ID, for the calling user.
