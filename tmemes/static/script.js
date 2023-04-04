@@ -80,7 +80,7 @@
     })
       .then(function (response) {
         response.json().then((data) => {
-          window.location.href = "/macros/" + data.createdId;
+          window.location.href = "/m/" + data.createdId;
         });
       })
       .catch(function (err) {

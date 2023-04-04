@@ -141,7 +141,7 @@ func (s *tmemeServer) userDisplayName(ctx context.Context, id tailcfg.UserID, ts
 func getSingleFromIDInPath[T any](path, key string, f func(int) (T, error)) (T, bool, error) {
 	var zero T
 	idStr, ok := strings.CutPrefix(path, "/"+key+"/")
-	if !ok {
+	if !ok || idStr == "" {
 		return zero, false, nil
 	}
 	id, err := strconv.Atoi(idStr)
@@ -268,7 +268,7 @@ func (s *tmemeServer) serveUITemplates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var templates []*tmemes.Template
-	if t, ok, err := getSingleFromIDInPath(r.URL.Path, "templates", s.db.Template); err != nil {
+	if t, ok, err := getSingleFromIDInPath(r.URL.Path, "t", s.db.Template); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	} else if !ok {
@@ -317,7 +317,7 @@ func (s *tmemeServer) serveUIMacros(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var macros []*tmemes.Macro
-	if m, ok, err := getSingleFromIDInPath(r.URL.Path, "macros", s.db.Macro); err != nil {
+	if m, ok, err := getSingleFromIDInPath(r.URL.Path, "m", s.db.Macro); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	} else if !ok {

@@ -134,13 +134,13 @@ The server exposes an API over HTTP. There are three buckets of methods:
   An optional trailing `.ext` is allowed, but it must match the stored template.
   Macros are cached and re-generated on-the-fly for this method.
 
-- `GET /templates` serve a UI page for all known templates.
+- `GET /t` serve a UI page for all known templates.
 
-- `GET /templates/:id` serve a UI page for one template by ID.
+- `GET /t/:id` serve a UI page for one template by ID.
 
-- `GET /macro` serve a UI page for all known macros.
+- `GET /` serve a UI page for all known macros.
 
-- `GET /macro/:id` serve a UI page for one macro by ID.
+- `GET /m/:id` serve a UI page for one macro by ID.
 
 - `GET /create/:id` serve a UI page to create a macro from the template with
   the given ID.

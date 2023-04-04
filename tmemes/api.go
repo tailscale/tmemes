@@ -115,13 +115,19 @@ func (s *tmemeServer) newMux() *http.ServeMux {
 	contentMux.HandleFunc("/content/macro/", s.serveContentMacro)
 
 	uiMux := http.NewServeMux()
-	uiMux.HandleFunc("/templates/", s.serveUITemplates) // view one template by ID
-	uiMux.HandleFunc("/templates", s.serveUITemplates)  // view all templates
-	uiMux.HandleFunc("/create/", s.serveUICreate)       // view create page for given template ID
-	uiMux.HandleFunc("/macro/", s.serveUIMacros)        // view one macro by ID
-	uiMux.HandleFunc("/macro", s.serveUIMacros)         // view all macros
-	uiMux.HandleFunc("/", s.serveUIMacros)              // alias for /macros/
-	uiMux.HandleFunc("/upload", s.serveUIUpload)        // template upload view
+	uiMux.HandleFunc("/macros/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/m/"+r.URL.Path[len("/macros/"):], http.StatusFound)
+	})
+	uiMux.HandleFunc("/templates/", func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/t/"+r.URL.Path[len("/templates/"):], http.StatusFound)
+	})
+	uiMux.HandleFunc("/t/", s.serveUITemplates)   // view one template by ID
+	uiMux.HandleFunc("/t", s.serveUITemplates)    // view all templates
+	uiMux.HandleFunc("/create/", s.serveUICreate) // view create page for given template ID
+	uiMux.HandleFunc("/m/", s.serveUIMacros)      // view one macro by ID
+	uiMux.HandleFunc("/m", s.serveUIMacros)       // view all macros
+	uiMux.HandleFunc("/", s.serveUIMacros)        // alias for /macros/
+	uiMux.HandleFunc("/upload", s.serveUIUpload)  // template upload view
 
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiMux)
