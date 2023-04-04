@@ -39,10 +39,11 @@ import (
 )
 
 type tmemeServer struct {
-	db        *store.DB
-	srv       *tsnet.Server
-	lc        *tailscale.LocalClient
-	superUser map[string]bool // logins of admin users
+	db             *store.DB
+	srv            *tsnet.Server
+	lc             *tailscale.LocalClient
+	superUser      map[string]bool // logins of admin users
+	allowAnonymous bool
 
 	macroGenerationSingleFlight singleflight.Group[string, string]
 
@@ -522,6 +523,10 @@ func (s *tmemeServer) serveAPIMacroPost(w http.ResponseWriter, r *http.Request) 
 	} else if m.Creator == 0 {
 		m.Creator = whois.UserProfile.ID
 	} else {
+		if !s.allowAnonymous {
+			http.Error(w, "anonymous macros not allowed", http.StatusForbidden)
+			return
+		}
 		m.Creator = -1 // normalize anonymous to -1
 	}
 
@@ -748,6 +753,10 @@ func (s *tmemeServer) serveAPITemplatePost(w http.ResponseWriter, r *http.Reques
 			return
 		}
 		if anonBool {
+			if !s.allowAnonymous {
+				http.Error(w, "anonymous templates not allowed", http.StatusUnauthorized)
+				return
+			}
 			t.Creator = -1
 		}
 	}

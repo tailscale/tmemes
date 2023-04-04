@@ -16,7 +16,9 @@
       <div class="text-entry">
         <label for="top">Top line of text:</label> <input id="top" />
         <label for="bottom">Bottom line of text:</label> <input id="bottom" />
+        {{ if .AllowAnon }}
         <label for="anon">Anonymous?</label> <span><input id="anon" type="checkbox" /></span>
+        {{ end }}
       </div>
       <button class="button submit" id="submit">Upload</button>
     </div>

@@ -42,6 +42,7 @@ type uiData struct {
 	Macros    []*uiMacro
 	Templates []*uiTemplate
 	CallerID  tailcfg.UserID
+	AllowAnon bool
 }
 
 type uiMacro struct {
@@ -60,6 +61,7 @@ type uiTemplate struct {
 	Extension   string
 	CreatorName string
 	CreatorID   tailcfg.UserID
+	AllowAnon   bool
 }
 
 func (s *tmemeServer) newUITemplate(ctx context.Context, t *tmemes.Template) *uiTemplate {
@@ -70,11 +72,13 @@ func (s *tmemeServer) newUITemplate(ctx context.Context, t *tmemes.Template) *ui
 		Extension:   ext,
 		CreatorName: s.userDisplayName(ctx, t.Creator, t.CreatedAt),
 		CreatorID:   t.Creator,
+		AllowAnon:   s.allowAnonymous,
 	}
 }
 
 func (s *tmemeServer) newUIData(ctx context.Context, templates []*tmemes.Template, macros []*tmemes.Macro, caller tailcfg.UserID) *uiData {
 	data := new(uiData)
+	data.AllowAnon = s.allowAnonymous
 	data.CallerID = caller
 
 	tid := make(map[int]*uiTemplate)
@@ -241,6 +245,10 @@ func (s *tmemeServer) serveUICreatePost(w http.ResponseWriter, r *http.Request, 
 	}
 
 	if webData.Anon {
+		if !s.allowAnonymous {
+			http.Error(w, "anonymous macros not allowed", http.StatusForbidden)
+			return
+		}
 		m.Creator = -1
 	} else {
 		m.Creator = whois.UserProfile.ID
@@ -362,7 +370,8 @@ func (s *tmemeServer) serveUIUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Set("Content-Type", "text/html")
 	var buf bytes.Buffer
-	if err := ui.ExecuteTemplate(&buf, "upload.tmpl", nil); err != nil {
+	uiD := s.newUIData(r.Context(), nil, nil, s.getCallerID(r))
+	if err := ui.ExecuteTemplate(&buf, "upload.tmpl", uiD); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}

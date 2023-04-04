@@ -17,10 +17,12 @@
    <label for=image>Image (GIF, PNG, or JPG):</label>
    <input type=file name=image id=image required />
  </div>
+ {{ if .AllowAnon }}
  <div class="form-input">
    <input type=checkbox name=anon value="true" />
    <label for=anon>Anonymous</label>
  </div>
+ {{ end }}
  <div class="form-input">
    <button class="button">Upload</button>
  </div>

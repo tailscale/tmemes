@@ -34,6 +34,8 @@ var (
 		"How long after last access a cached macro is eligible for cleanup")
 	minPruneMiB = flag.Int64("cache-min-prune-mib", 5120,
 		"Minimum size of macro cache in MiB to trigger a cleanup")
+
+	allowAnonymous = flag.Bool("allow-anonymous", true, "allow anonymous uploads")
 )
 
 func main() {
@@ -83,9 +85,10 @@ func main() {
 	}
 
 	ms := &tmemeServer{
-		db:  db,
-		srv: s,
-		lc:  lc,
+		db:             db,
+		srv:            s,
+		lc:             lc,
+		allowAnonymous: *allowAnonymous,
 	}
 	if *adminUsers != "" {
 		ms.superUser = make(map[string]bool)
