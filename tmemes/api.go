@@ -123,9 +123,6 @@ func (s *tmemeServer) newMux() *http.ServeMux {
 	uiMux.HandleFunc("/", s.serveUIMacros)              // alias for /macros/
 	uiMux.HandleFunc("/upload", s.serveUIUpload)        // template upload view
 
-	uiMux.HandleFunc("/style.css", s.serveCSS)
-	uiMux.HandleFunc("/script.js", s.serveJS)
-
 	mux := http.NewServeMux()
 	mux.Handle("/api/", apiMux)
 	mux.Handle("/content/", contentMux)

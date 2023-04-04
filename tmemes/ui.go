@@ -30,12 +30,6 @@ var uiFS embed.FS
 //go:embed static
 var staticFS embed.FS
 
-//go:embed ui/style.css
-var styleCSS string
-
-//go:embed ui/script.js
-var scriptJS string
-
 var ui = template.Must(template.New("ui").Funcs(template.FuncMap{
 	"timestamp": func(ts time.Time) string {
 		return ts.Format(time.Stamp)
@@ -372,14 +366,6 @@ func (s *tmemeServer) serveUIUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	buf.WriteTo(w)
-}
-
-func (s *tmemeServer) serveCSS(w http.ResponseWriter, r *http.Request) {
-	http.ServeContent(w, r, "style.css", time.Now(), strings.NewReader(styleCSS))
-}
-
-func (s *tmemeServer) serveJS(w http.ResponseWriter, r *http.Request) {
-	http.ServeContent(w, r, "script.js", time.Now(), strings.NewReader(scriptJS))
 }
 
 // sortMacros sorts a slice of macros in-place by the specified sorting key.
