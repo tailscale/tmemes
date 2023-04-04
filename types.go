@@ -18,8 +18,10 @@ import (
 // A Template defines a base template for an image macro.
 type Template struct {
 	ID        int            `json:"id"`
-	Path      string         `json:"path"` // path of image file
-	Name      string         `json:"name"` // descriptive label
+	Path      string         `json:"path"`   // path of image file
+	Width     int            `json:"width"`  // image width
+	Height    int            `json:"height"` // image height
+	Name      string         `json:"name"`   // descriptive label
 	Creator   tailcfg.UserID `json:"creator"`
 	CreatedAt time.Time      `json:"createdAt"`
 	Areas     []Area         `json:"areas,omitempty"` // optional predefined areas

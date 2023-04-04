@@ -14,6 +14,7 @@ import (
 	"image/gif"
 	"image/jpeg"
 	"image/png"
+	"io"
 	"log"
 	"math"
 	"net/http"
@@ -775,6 +776,15 @@ func (s *tmemeServer) serveAPITemplatePost(w http.ResponseWriter, r *http.Reques
 		http.Error(w, "invalid image format", http.StatusBadRequest)
 		return
 	}
+	imageConfig, _, err := image.DecodeConfig(img)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	t.Width = imageConfig.Width
+	t.Height = imageConfig.Height
+	img.Seek(0, io.SeekStart)
+
 	if err := s.db.AddTemplate(t, ext, img); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

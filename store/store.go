@@ -9,6 +9,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"image"
 	"io"
 	"log"
 	"os"
@@ -98,6 +99,10 @@ func New(dirPath string, opts *Options) (*DB, error) {
 		sqldb:         sqldb,
 	}
 	if err := db.loadSQLiteIndex(); err != nil {
+		db.Close()
+		return nil, err
+	}
+	if err := db.backfillTemplateDimensions(); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -499,4 +504,36 @@ func (db *DB) UserVotes(userID tailcfg.UserID) (map[int]int, error) {
 		out[macroID] = vote
 	}
 	return out, rows.Err()
+}
+
+// backfillTemplateDimensions populates the width and height fields of templates
+// created before those fields started to be populated at template creation
+// time.
+func (db *DB) backfillTemplateDimensions() error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	for _, t := range db.templates {
+		if t.Width != 0 {
+			continue
+		}
+		log.Printf("Backfilling dimensions for template %q...", t.Name)
+		tf, err := os.Open(t.Path)
+		if err != nil {
+			return err
+		}
+		defer tf.Close()
+
+		c, _, err := image.DecodeConfig(tf)
+		if err != nil {
+			return err
+		}
+		t.Width = c.Width
+		t.Height = c.Height
+
+		if err := db.updateTemplateLocked(t); err != nil {
+			return err
+		}
+		log.Printf(" ...success!")
+	}
+	return nil
 }

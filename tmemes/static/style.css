@@ -110,6 +110,7 @@ nav a.active {
 
 .meme-list .meme img {
 	width: 100%;
+	height: auto;
 }
 
 .meme {

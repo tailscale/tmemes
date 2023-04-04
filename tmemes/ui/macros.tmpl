@@ -15,7 +15,7 @@
       Posted by {{.CreatorName}} at {{timestamp .CreatedAt}}
       </div>
       <a href="/m/{{.ID}}" src="link to macro {{.ID}}">
-        <img src="{{.ImageURL}}" />
+        <img src="{{.ImageURL}}" width="{{.Template.Width}}" height="{{.Template.Height}}" loading="lazy" />
       </a>
       <div class="meta actions">
         <button title="upvote" class="upvote macro {{if .Upvoted}}upvoted{{end}}" upvote-id="{{.ID}}">{{.Upvotes}}</button>
