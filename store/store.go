@@ -141,7 +141,7 @@ func (db *DB) SetCacheSeed(s string) error {
 	return err
 }
 
-// Templates returns all the templates in the store.
+// Templates returns all the non-hidden templates in the store.
 func (db *DB) Templates() []*tmemes.Template {
 	db.mu.Lock()
 	all := make([]*tmemes.Template, 0, len(db.templates))
@@ -173,11 +173,24 @@ func (db *DB) TemplatesByCreator(creator tailcfg.UserID) []*tmemes.Template {
 }
 
 // Template returns the template data for the specified ID.
+// Hidden templates are treated as not found.
 func (db *DB) Template(id int) (*tmemes.Template, error) {
 	db.mu.Lock()
 	t, ok := db.templates[id]
 	db.mu.Unlock()
 	if !ok || t.Hidden {
+		return nil, fmt.Errorf("template %d not found", id)
+	}
+	return t, nil
+}
+
+// AnyTemplate returns the template data for the specified ID.
+// Hidden templates are included.
+func (db *DB) AnyTemplate(id int) (*tmemes.Template, error) {
+	db.mu.Lock()
+	t, ok := db.templates[id]
+	db.mu.Unlock()
+	if !ok {
 		return nil, fmt.Errorf("template %d not found", id)
 	}
 	return t, nil

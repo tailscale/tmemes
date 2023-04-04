@@ -77,9 +77,10 @@ func (s *tmemeServer) newUITemplate(ctx context.Context, t *tmemes.Template) *ui
 }
 
 func (s *tmemeServer) newUIData(ctx context.Context, templates []*tmemes.Template, macros []*tmemes.Macro, caller tailcfg.UserID) *uiData {
-	data := new(uiData)
-	data.AllowAnon = s.allowAnonymous
-	data.CallerID = caller
+	data := &uiData{
+		AllowAnon: s.allowAnonymous,
+		CallerID:  caller,
+	}
 
 	tid := make(map[int]*uiTemplate)
 	for _, t := range templates {
@@ -95,7 +96,11 @@ func (s *tmemeServer) newUIData(ctx context.Context, templates []*tmemes.Templat
 	for _, m := range macros {
 		mt := tid[m.TemplateID]
 		if mt == nil {
-			continue // skip macros whose template isn't loaded
+			t, err := s.db.AnyTemplate(m.TemplateID)
+			if err != nil {
+				panic(err) // this should not be possible
+			}
+			mt = s.newUITemplate(ctx, t)
 		}
 		vote := uv[m.ID]
 		um := &uiMacro{
