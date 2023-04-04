@@ -33,7 +33,7 @@ var staticFS embed.FS
 
 var ui = template.Must(template.New("ui").Funcs(template.FuncMap{
 	"timestamp": func(ts time.Time) string {
-		return ts.Format(time.Stamp)
+		return ts.Local().Format(time.Stamp)
 	},
 }).ParseFS(uiFS, "ui/*.tmpl"))
 
