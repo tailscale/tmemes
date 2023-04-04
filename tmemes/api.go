@@ -405,7 +405,7 @@ func (s *tmemeServer) overlayTextOnImage(dc *gg.Context, tl tmemes.TextLine, bou
 	dc.SetFontFace(font)
 
 	width := oneForZero(tl.Field.Width) * float64(bounds.Dx())
-	lineSpacing := 1.5
+	lineSpacing := 1.25
 	x := tl.Field.X * float64(bounds.Dx())
 	y := tl.Field.Y * float64(bounds.Dy())
 	ax := 0.5
