@@ -44,8 +44,6 @@ type tmemeServer struct {
 	lc        *tailscale.LocalClient
 	superUser map[string]bool // logins of admin users
 
-	fontCache sync.Map // fontSize (int) -> *truetype.Font
-
 	macroGenerationSingleFlight singleflight.Group[string, string]
 
 	mu sync.Mutex // guards userProfiles
@@ -59,9 +57,24 @@ var (
 	macroMetrics = &metrics.LabelMap{Label: "type"}
 )
 
+// Preloaded font definition.
+var (
+	oswaldSemiBold *truetype.Font
+)
+
 func init() {
 	expvar.Publish("tmemes_serve_metrics", serveMetrics)
 	expvar.Publish("tmemes_macro_metrics", macroMetrics)
+
+	// Preload and parse the font definition, so we can reuse it.
+	fontBytes, err := staticFS.ReadFile("static/font/Oswald-SemiBold.ttf")
+	if err != nil {
+		panic(fmt.Sprintf("Loading font: %v", err))
+	}
+	oswaldSemiBold, err = truetype.Parse(fontBytes)
+	if err != nil {
+		panic(fmt.Sprintf("Parsing font: %v", err))
+	}
 }
 
 var errNotFound = errors.New("not found")
@@ -306,23 +319,10 @@ func fontSizeForImage(img image.Image) int {
 	return points
 }
 
-func (s *tmemeServer) fontForSize(points int) (font.Face, error) {
-	if f, ok := s.fontCache.Load(points); ok {
-		return f.(font.Face), nil
-	}
-	fontBytes, err := staticFS.ReadFile("static/font/Oswald-SemiBold.ttf")
-	if err != nil {
-		return nil, err
-	}
-	f, err := truetype.Parse(fontBytes)
-	if err != nil {
-		return nil, err
-	}
-	face := truetype.NewFace(f, &truetype.Options{
+func (s *tmemeServer) fontForSize(points int) font.Face {
+	return truetype.NewFace(oswaldSemiBold, &truetype.Options{
 		Size: float64(points),
 	})
-	s.fontCache.Store(points, face)
-	return face, nil
 }
 
 func (s *tmemeServer) generateMacro(m *tmemes.Macro, cachePath string) (retErr error) {
@@ -401,10 +401,7 @@ func (s *tmemeServer) overlayTextOnImage(dc *gg.Context, tl tmemes.TextLine, bou
 	}
 
 	fontSize := fontSizeForImage(bounds)
-	font, err := s.fontForSize(fontSize)
-	if err != nil {
-		return err
-	}
+	font := s.fontForSize(fontSize)
 	dc.SetFontFace(font)
 
 	width := oneForZero(tl.Field.Width) * float64(bounds.Dx())
@@ -420,10 +417,7 @@ func (s *tmemeServer) overlayTextOnImage(dc *gg.Context, tl tmemes.TextLine, bou
 
 	for len(lines) > 2 && fontSize > 6 {
 		fontSize--
-		font, err = s.fontForSize(fontSize)
-		if err != nil {
-			return err
-		}
+		font = s.fontForSize(fontSize)
 		dc.SetFontFace(font)
 		lines = dc.WordWrap(text, width)
 	}
