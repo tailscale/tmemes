@@ -45,10 +45,24 @@
       const x = field.x * fallback.naturalWidth;
       const y = field.y * fallback.naturalHeight;
       const width = field.width * fallback.naturalWidth;
-      ctx.strokeStyle = overlay.strokeColor;
-      ctx.lineWidth = 12;
+
       ctx.textBaseline = "middle";
-      ctx.strokeText(text, x, y, width);
+
+      // Simulate outline by repeatedly filling the text in black (even though
+      // Canvas2DRenderingContext.strokeText exists, it has glitches for large
+      // stroke values -- this replicates what the server-side does)
+      const n = 6; // visible outline size
+      ctx.fillStyle = overlay.strokeColor;
+      for (let dy = -n; dy <= n; dy++) {
+        for (let dx = -n; dx <= n; dx++) {
+          if (dx * dx + dy * dy >= n * n) {
+            // give it rounded corners
+            continue;
+          }
+          ctx.fillText(text, x + dx, y + dy, width);
+        }
+      }
+
       ctx.fillStyle = overlay.color;
       ctx.fillText(text, x, y, width);
     }
