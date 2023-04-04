@@ -18,6 +18,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/creachadair/mds/slice"
 	"github.com/tailscale/tmemes"
 	"golang.org/x/exp/slices"
 	"tailscale.com/tailcfg"
@@ -334,7 +335,7 @@ func (s *tmemeServer) serveUIMacros(w http.ResponseWriter, r *http.Request) {
 	} else {
 		macros = append(macros, m)
 	}
-	defaultSort := "popular"
+	defaultSort := "top-popular"
 	if v := r.URL.Query().Get("sort"); v != "" {
 		defaultSort = v
 	}
@@ -376,23 +377,38 @@ func sortMacros(key string, ms []*tmemes.Macro) error {
 	case "", "default", "id":
 		// nothing to do, this is the order we get from the database
 	case "recent":
-		slices.SortFunc(ms, func(a, b *tmemes.Macro) bool {
-			return a.CreatedAt.After(b.CreatedAt)
-		})
+		sortMacrosByRecency(ms)
 	case "popular":
-		// TODO: what should the definition of this be?
-		slices.SortFunc(ms, func(a, b *tmemes.Macro) bool {
-			da := a.Upvotes - a.Downvotes
-			db := b.Upvotes - b.Downvotes
-			if da == db {
-				return a.CreatedAt.After(b.CreatedAt)
-			}
-			return da > db
+		sortMacrosByPopularity(ms)
+	case "top-popular":
+		top := slice.Partition(ms, func(m *tmemes.Macro) bool {
+			return time.Since(m.CreatedAt) < 1*time.Hour
 		})
+		rest := ms[len(top):]
+		sortMacrosByRecency(top)
+		sortMacrosByPopularity(rest)
 	default:
 		return fmt.Errorf("invalid sort order %q", key)
 	}
 	return nil
+}
+
+func sortMacrosByRecency(ms []*tmemes.Macro) {
+	slices.SortFunc(ms, func(a, b *tmemes.Macro) bool {
+		return a.CreatedAt.After(b.CreatedAt)
+	})
+}
+
+func sortMacrosByPopularity(ms []*tmemes.Macro) {
+	// TODO: what should the definition of this be?
+	slices.SortFunc(ms, func(a, b *tmemes.Macro) bool {
+		da := a.Upvotes - a.Downvotes
+		db := b.Upvotes - b.Downvotes
+		if da == db {
+			return a.CreatedAt.After(b.CreatedAt)
+		}
+		return da > db
+	})
 }
 
 // parsePageOptions parses "page" and "count" query parameters from r if they
