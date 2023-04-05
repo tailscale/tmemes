@@ -36,6 +36,7 @@ import (
 	"tailscale.com/metrics"
 	"tailscale.com/tailcfg"
 	"tailscale.com/tsnet"
+	"tailscale.com/tsweb"
 	"tailscale.com/util/singleflight"
 )
 
@@ -52,6 +53,58 @@ type tmemeServer struct {
 
 	userProfiles            map[tailcfg.UserID]tailcfg.UserProfile
 	lastUpdatedUserProfiles time.Time
+}
+
+func (s *tmemeServer) initialize(ts *tsnet.Server) error {
+	// Populate superusers.
+	if *adminUsers != "" {
+		s.superUser = make(map[string]bool)
+		for _, u := range strings.Split(*adminUsers, ",") {
+			s.superUser[u] = true
+		}
+	}
+
+	// Preload ETag values.
+	var numTags int
+	for _, t := range s.db.Templates() {
+		tag, err := makeFileETag(t.Path)
+		if err != nil {
+			return err
+		}
+		s.imageFileETags.Store(t.Path, tag)
+		numTags++
+	}
+	for _, m := range s.db.Macros() {
+		cachePath, _ := s.db.CachePath(m)
+		tag, err := makeFileETag(cachePath)
+		if os.IsNotExist(err) {
+			continue
+		} else if err != nil {
+			return err
+		}
+		s.imageFileETags.Store(cachePath, tag)
+		numTags++
+	}
+	log.Printf("Preloaded %d image ETags", numTags)
+
+	// Set up a metrics server.
+	ln, err := ts.Listen("tcp", ":8383")
+	if err != nil {
+		return err
+	}
+	go func() {
+		defer ln.Close()
+		log.Print("Starting debug server on :8383")
+		mux := http.NewServeMux()
+		tsweb.Debugger(mux)
+		http.Serve(ln, mux)
+	}()
+
+	// Enable the Slack integration.
+	if *enableSlackBot {
+		go startSlackBot()
+	}
+	return nil
 }
 
 var (

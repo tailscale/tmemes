@@ -9,14 +9,12 @@ import (
 	"log"
 	"net/http"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
 	"github.com/tailscale/tmemes/bot"
 	"github.com/tailscale/tmemes/store"
 	"tailscale.com/tsnet"
-	"tailscale.com/tsweb"
 	"tailscale.com/types/logger"
 
 	_ "modernc.org/sqlite"
@@ -90,27 +88,8 @@ func main() {
 		lc:             lc,
 		allowAnonymous: *allowAnonymous,
 	}
-	if *adminUsers != "" {
-		ms.superUser = make(map[string]bool)
-		for _, u := range strings.Split(*adminUsers, ",") {
-			ms.superUser[u] = true
-		}
-	}
-
-	go func() {
-		ln, err := s.Listen("tcp", ":8383")
-		if err != nil {
-			panic(err)
-		}
-		defer ln.Close()
-		log.Print("Starting debug server on :8383")
-		mux := http.NewServeMux()
-		tsweb.Debugger(mux)
-		http.Serve(ln, mux)
-	}()
-
-	if *enableSlackBot {
-		go startSlackBot()
+	if err := ms.initialize(s); err != nil {
+		panic(err)
 	}
 
 	log.Print("it's alive!")
