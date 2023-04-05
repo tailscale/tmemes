@@ -186,7 +186,7 @@ func (s *tmemeServer) serveContentTemplate(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	http.ServeFile(w, r, t.Path)
+	serveFileCached(w, r, t.Path, 365*24*time.Hour)
 }
 
 func (s *tmemeServer) serveContentMacro(w http.ResponseWriter, r *http.Request) {
@@ -230,7 +230,7 @@ func (s *tmemeServer) serveContentMacro(w http.ResponseWriter, r *http.Request) 
 
 	if _, err := os.Stat(cachePath); err == nil {
 		macroMetrics.Add("cache-hit", 1)
-		http.ServeFile(w, r, cachePath)
+		serveFileCached(w, r, cachePath, 24*time.Hour)
 		return
 	} else {
 		log.Printf("cache file %q not found, generating: %v", cachePath, err)
@@ -245,7 +245,13 @@ func (s *tmemeServer) serveContentMacro(w http.ResponseWriter, r *http.Request) 
 	} else if reused {
 		macroMetrics.Add("cache-reused", 1)
 	}
-	http.ServeFile(w, r, cachePath)
+
+	serveFileCached(w, r, cachePath, 24*time.Hour)
+}
+
+func serveFileCached(w http.ResponseWriter, r *http.Request, path string, maxAge time.Duration) {
+	w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d, no-transform", maxAge/time.Second))
+	http.ServeFile(w, r, path)
 }
 
 func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFile *os.File) (retErr error) {
