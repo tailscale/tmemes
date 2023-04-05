@@ -6,7 +6,7 @@
   --text-muted: #A5AFC4;
   --bg-body: #15141A;
   --bg-cards: #142138;
-  --column-width: 450px;
+  --column-width: 330px;
   --success: green;
   --warn: #c97514;
   --error: #9e0808;
@@ -91,9 +91,9 @@ nav a.active {
   IMAGE CARDS
 **************************************************/
 .meme-list {
-	columns: 3 450px;
-  column-gap: 1rem;
-  max-width: 100%;
+	columns: 4 330px;
+	column-gap: 1rem;
+	max-width: 100%;
 	text-align: center;
 }
 
