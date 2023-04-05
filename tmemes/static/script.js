@@ -7,7 +7,11 @@
   function readTextValues() {
     const top = document.getElementById("top").value;
     const bottom = document.getElementById("bottom").value;
-    const anon = document.getElementById("anon").checked;
+    let anon = false;
+    const anonEl = document.getElementById("anon");
+    if (anonEl) {
+      anon = document.getElementById("anon").checked;
+    }
     overlays = [];
     if (top !== "") {
       overlays.push({
