@@ -10,7 +10,7 @@
 <form id=upload method=POST enctype="multipart/form-data" action="/api/template">
  <div class="form-input">
    <label for=name>Template name (required):</label>
-   <input type=text size=64 name=name required />
+   <input type=text size=64 name=name id=name required />
  </div>
  <div class="form-input">
    <img id=image-preview />
@@ -51,6 +51,7 @@ function preview(e) {
   let [f] = document.getElementById("image").files;
   if (f) {
     document.getElementById("image-preview").src = URL.createObjectURL(f);
+    document.getElementById("name").value = f.name;
   }
 }
 
