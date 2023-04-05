@@ -6,13 +6,17 @@ package main
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash"
 	"html/template"
+	"io"
 	"log"
 	"net/http"
+	"os"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -475,4 +479,35 @@ func slicePage[T any, S ~[]T](vs S, page, count int) S {
 		end = len(vs)
 	}
 	return vs[start:end]
+}
+
+func formatETag(h hash.Hash) string { return fmt.Sprintf(`"%x"`, h.Sum(nil)) }
+
+// newHashPipe returns a reader that delegates to r, and as a side-effect
+// writes everything successfully read from r as writes to h.
+func newHashPipe(r io.Reader, h hash.Hash) io.Reader { return hashPipe{r: r, h: h} }
+
+type hashPipe struct {
+	r io.Reader
+	h hash.Hash
+}
+
+func (h hashPipe) Read(data []byte) (int, error) {
+	nr, err := h.r.Read(data)
+	h.h.Write(data[:nr])
+	return nr, err
+}
+
+// makeFileETag returns an ETag hash for the specified file path.
+func makeFileETag(path string) (string, error) {
+	f, err := os.Open(path)
+	if err != nil {
+		return "", err
+	}
+	defer f.Close()
+	etagHash := sha256.New()
+	if _, err := io.Copy(etagHash, f); err != nil {
+		return "", err
+	}
+	return formatETag(etagHash), nil
 }

@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"errors"
 	"expvar"
@@ -48,6 +49,7 @@ type tmemeServer struct {
 	allowAnonymous bool
 
 	macroGenerationSingleFlight singleflight.Group[string, string]
+	imageFileETags              sync.Map // :: path → etag
 
 	mu sync.Mutex // guards userProfiles
 
@@ -239,7 +241,7 @@ func (s *tmemeServer) serveContentTemplate(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	serveFileCached(w, r, t.Path, 365*24*time.Hour)
+	s.serveFileCached(w, r, t.Path, 365*24*time.Hour)
 }
 
 func (s *tmemeServer) serveContentMacro(w http.ResponseWriter, r *http.Request) {
@@ -283,7 +285,7 @@ func (s *tmemeServer) serveContentMacro(w http.ResponseWriter, r *http.Request) 
 
 	if _, err := os.Stat(cachePath); err == nil {
 		macroMetrics.Add("cache-hit", 1)
-		serveFileCached(w, r, cachePath, 24*time.Hour)
+		s.serveFileCached(w, r, cachePath, 24*time.Hour)
 		return
 	} else {
 		log.Printf("cache file %q not found, generating: %v", cachePath, err)
@@ -299,11 +301,15 @@ func (s *tmemeServer) serveContentMacro(w http.ResponseWriter, r *http.Request) 
 		macroMetrics.Add("cache-reused", 1)
 	}
 
-	serveFileCached(w, r, cachePath, 24*time.Hour)
+	s.serveFileCached(w, r, cachePath, 24*time.Hour)
 }
 
-func serveFileCached(w http.ResponseWriter, r *http.Request, path string, maxAge time.Duration) {
-	w.Header().Set("Cache-Control", fmt.Sprintf("public, max-age=%d, no-transform", maxAge/time.Second))
+func (s *tmemeServer) serveFileCached(w http.ResponseWriter, r *http.Request, path string, maxAge time.Duration) {
+	w.Header().Set("Cache-Control", fmt.Sprintf(
+		"public, max-age=%d, no-transform", maxAge/time.Second))
+	if tag, ok := s.imageFileETags.Load(path); ok {
+		w.Header().Set("ETag", tag.(string))
+	}
 	http.ServeFile(w, r, path)
 }
 
@@ -360,14 +366,18 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 	if err != nil {
 		return err
 	}
+	etagHash := sha256.New()
+	dst := io.MultiWriter(etagHash, dstFile)
 	defer func() {
 		if retErr != nil {
 			dstFile.Close()
 			os.Remove(cachePath)
+		} else {
+			s.imageFileETags.Store(cachePath, formatETag(etagHash))
 		}
 	}()
 
-	err = gif.EncodeAll(dstFile, srcGif)
+	err = gif.EncodeAll(dst, srcGif)
 	if err != nil {
 		return err
 	}
@@ -420,16 +430,21 @@ func (s *tmemeServer) generateMacro(m *tmemes.Macro, cachePath string) (retErr e
 	alpha := image.NewNRGBA(bounds)
 	draw.Draw(alpha, bounds, srcImage, bounds.Min, draw.Src)
 	draw.Draw(alpha, bounds, dc.Image(), bounds.Min, draw.Over)
-	dst, err := os.Create(cachePath)
+	f, err := os.Create(cachePath)
 	if err != nil {
 		return err
 	}
+	etagHash := sha256.New()
+	dst := io.MultiWriter(etagHash, f)
 	defer func() {
 		if retErr != nil {
-			dst.Close()
+			f.Close()
 			os.Remove(cachePath)
+		} else {
+			s.imageFileETags.Store(cachePath, formatETag(etagHash))
 		}
 	}()
+
 	switch ext {
 	case ".jpg", ".jpeg":
 		macroMetrics.Add("generate-jpg", 1)
@@ -445,7 +460,7 @@ func (s *tmemeServer) generateMacro(m *tmemes.Macro, cachePath string) (retErr e
 		return fmt.Errorf("unknown extension: %v", ext)
 	}
 
-	return dst.Close()
+	return f.Close()
 }
 
 func oneForZero(v float64) float64 {
@@ -844,10 +859,12 @@ func (s *tmemeServer) serveAPITemplatePost(w http.ResponseWriter, r *http.Reques
 	t.Height = imageConfig.Height
 	img.Seek(0, io.SeekStart)
 
-	if err := s.db.AddTemplate(t, ext, img); err != nil {
+	etagHash := sha256.New()
+	if err := s.db.AddTemplate(t, ext, newHashPipe(img, etagHash)); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	s.imageFileETags.Store(t.Path, formatETag(etagHash))
 	redirect := fmt.Sprintf("/create/%v", t.ID)
 	http.Redirect(w, r, redirect, http.StatusFound)
 }
