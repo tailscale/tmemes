@@ -481,7 +481,7 @@ func slicePage[T any, S ~[]T](vs S, page, count int) S {
 	return vs[start:end]
 }
 
-func formatETag(h hash.Hash) string { return fmt.Sprintf(`"%x"`, h.Sum(nil)) }
+func formatEtag(h hash.Hash) string { return fmt.Sprintf(`"%x"`, h.Sum(nil)) }
 
 // newHashPipe returns a reader that delegates to r, and as a side-effect
 // writes everything successfully read from r as writes to h.
@@ -498,8 +498,9 @@ func (h hashPipe) Read(data []byte) (int, error) {
 	return nr, err
 }
 
-// makeFileETag returns an ETag hash for the specified file path.
-func makeFileETag(path string) (string, error) {
+// makeFileEtag returns a quoted Etag hash ("<hex>") for the specified file
+// path.
+func makeFileEtag(path string) (string, error) {
 	f, err := os.Open(path)
 	if err != nil {
 		return "", err
@@ -509,5 +510,5 @@ func makeFileETag(path string) (string, error) {
 	if _, err := io.Copy(etagHash, f); err != nil {
 		return "", err
 	}
-	return formatETag(etagHash), nil
+	return formatEtag(etagHash), nil
 }

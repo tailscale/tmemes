@@ -49,7 +49,7 @@ type tmemeServer struct {
 	allowAnonymous bool
 
 	macroGenerationSingleFlight singleflight.Group[string, string]
-	imageFileETags              sync.Map // :: path → etag
+	imageFileEtags              sync.Map // :: string(path) → string(quoted etag)
 
 	mu sync.Mutex // guards userProfiles
 
@@ -66,28 +66,28 @@ func (s *tmemeServer) initialize(ts *tsnet.Server) error {
 		}
 	}
 
-	// Preload ETag values.
+	// Preload Etag values.
 	var numTags int
 	for _, t := range s.db.Templates() {
-		tag, err := makeFileETag(t.Path)
+		tag, err := makeFileEtag(t.Path)
 		if err != nil {
 			return err
 		}
-		s.imageFileETags.Store(t.Path, tag)
+		s.imageFileEtags.Store(t.Path, tag)
 		numTags++
 	}
 	for _, m := range s.db.Macros() {
 		cachePath, _ := s.db.CachePath(m)
-		tag, err := makeFileETag(cachePath)
+		tag, err := makeFileEtag(cachePath)
 		if os.IsNotExist(err) {
 			continue
 		} else if err != nil {
 			return err
 		}
-		s.imageFileETags.Store(cachePath, tag)
+		s.imageFileEtags.Store(cachePath, tag)
 		numTags++
 	}
-	log.Printf("Preloaded %d image ETags", numTags)
+	log.Printf("Preloaded %d image Etags", numTags)
 
 	// Set up a metrics server.
 	ln, err := ts.Listen("tcp", ":8383")
@@ -307,8 +307,8 @@ func (s *tmemeServer) serveContentMacro(w http.ResponseWriter, r *http.Request) 
 func (s *tmemeServer) serveFileCached(w http.ResponseWriter, r *http.Request, path string, maxAge time.Duration) {
 	w.Header().Set("Cache-Control", fmt.Sprintf(
 		"public, max-age=%d, no-transform", maxAge/time.Second))
-	if tag, ok := s.imageFileETags.Load(path); ok {
-		w.Header().Set("ETag", tag.(string))
+	if tag, ok := s.imageFileEtags.Load(path); ok {
+		w.Header().Set("Etag", tag.(string))
 	}
 	http.ServeFile(w, r, path)
 }
@@ -373,7 +373,7 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 			dstFile.Close()
 			os.Remove(cachePath)
 		} else {
-			s.imageFileETags.Store(cachePath, formatETag(etagHash))
+			s.imageFileEtags.Store(cachePath, formatEtag(etagHash))
 		}
 	}()
 
@@ -441,7 +441,7 @@ func (s *tmemeServer) generateMacro(m *tmemes.Macro, cachePath string) (retErr e
 			f.Close()
 			os.Remove(cachePath)
 		} else {
-			s.imageFileETags.Store(cachePath, formatETag(etagHash))
+			s.imageFileEtags.Store(cachePath, formatEtag(etagHash))
 		}
 	}()
 
@@ -864,7 +864,7 @@ func (s *tmemeServer) serveAPITemplatePost(w http.ResponseWriter, r *http.Reques
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	s.imageFileETags.Store(t.Path, formatETag(etagHash))
+	s.imageFileEtags.Store(t.Path, formatEtag(etagHash))
 	redirect := fmt.Sprintf("/create/%v", t.ID)
 	http.Redirect(w, r, redirect, http.StatusFound)
 }

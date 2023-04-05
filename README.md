@@ -175,4 +175,4 @@ Add anything you think should be done, even if you don't want to do it yourself.
 - [ ] (jenny) support showing memes per creator
 - [ ] (mjf) support long polling to refresh the UI, like a websocket or SSE
 - [ ] (mjf) render timestamps on the browser so they show the user's local time.
-- [ ] (mjf) support cache control headers for image data
+- [x] (mjf) support cache control headers for image data
