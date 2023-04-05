@@ -302,7 +302,7 @@ func (db *DB) Macros() []*tmemes.Macro {
 // CachePath returns a cache file path for the specified macro.  The path is
 // returned even if the file is not cached.
 func (db *DB) CachePath(m *tmemes.Macro) (string, error) {
-	t, err := db.Template(m.TemplateID)
+	t, err := db.AnyTemplate(m.TemplateID)
 	if err != nil {
 		return "", err
 	}
