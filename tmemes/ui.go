@@ -43,10 +43,11 @@ var ui = template.Must(template.New("ui").Funcs(template.FuncMap{
 
 // uiData is the value passed to HTML templates.
 type uiData struct {
-	Macros    []*uiMacro
-	Templates []*uiTemplate
-	CallerID  tailcfg.UserID
-	AllowAnon bool
+	Macros        []*uiMacro
+	Templates     []*uiTemplate
+	CallerID      tailcfg.UserID
+	AllowAnon     bool
+	CallerIsAdmin bool
 }
 
 type uiMacro struct {
@@ -82,8 +83,9 @@ func (s *tmemeServer) newUITemplate(ctx context.Context, t *tmemes.Template) *ui
 
 func (s *tmemeServer) newUIData(ctx context.Context, templates []*tmemes.Template, macros []*tmemes.Macro, caller tailcfg.UserID) *uiData {
 	data := &uiData{
-		AllowAnon: s.allowAnonymous,
-		CallerID:  caller,
+		AllowAnon:     s.allowAnonymous,
+		CallerID:      caller,
+		CallerIsAdmin: s.userIsAdmin(ctx, caller),
 	}
 
 	tid := make(map[int]*uiTemplate)
@@ -150,6 +152,14 @@ func (s *tmemeServer) userDisplayName(ctx context.Context, id tailcfg.UserID, ts
 		return p.DisplayName
 	}
 	return p.LoginName
+}
+
+func (s *tmemeServer) userIsAdmin(ctx context.Context, id tailcfg.UserID) bool {
+	p, err := s.userFromID(ctx, id)
+	if err != nil {
+		return false // fail closed
+	}
+	return s.superUser[p.LoginName]
 }
 
 func getSingleFromIDInPath[T any](path, key string, f func(int) (T, error)) (T, bool, error) {
