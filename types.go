@@ -7,6 +7,7 @@
 package tmemes
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strings"
@@ -48,6 +49,45 @@ type Macro struct {
 	Downvotes int `json:"downvotes,omitempty"`
 }
 
+// Areas is a wrapper for a slice of Area values that optionally decodes from
+// JSON as either a single Area object or an array of Area values.
+// A length-1 Areas encodes as a plain object.
+type Areas []Area
+
+func (a Areas) MarshalJSON() ([]byte, error) {
+	if len(a) == 1 {
+		return json.Marshal(a[0])
+	}
+	msgs := make([]json.RawMessage, len(a))
+	for i, v := range a {
+		data, err := json.Marshal(v)
+		if err != nil {
+			return nil, fmt.Errorf("area %d: %w", i, err)
+		}
+		msgs[i] = data
+	}
+	return json.Marshal(msgs)
+}
+
+func (a *Areas) UnmarshalJSON(data []byte) error {
+	if len(data) == 0 {
+		return errors.New("empty input")
+	}
+	switch data[0] {
+	case '[':
+		return json.Unmarshal(data, (*[]Area)(a))
+	case '{':
+		var single Area
+		if err := json.Unmarshal(data, &single); err != nil {
+			return err
+		}
+		*a = Areas{single}
+		return nil
+	default:
+		return errors.New("invalid input")
+	}
+}
+
 // An Area defines a rectangular region of an image where text can go.  Each
 // area has an anchor point, relative to the top-left of the image, and a
 // target width and height as fractions of the image size.  Text drawn within
@@ -58,6 +98,7 @@ type Area struct {
 	Y      float64 `json:"y"`                // y offset of anchor as a fraciton 0..1 of width
 	Width  float64 `json:"width,omitempty"`  // width of text box as a fraction of image width
 	Height float64 `json:"height,omitempty"` // height of text box as a fraction of image height
+	Count  int     `json:"count,omitempty"`  // number of consecutive frames at this position (0 means 1)
 
 	// N.B. If width == 0 or height == 0, the full dimension can be used.
 }
@@ -65,7 +106,7 @@ type Area struct {
 // A TextLine is a single line of text with an optional alignment.
 type TextLine struct {
 	Text        string `json:"text"`
-	Field       Area   `json:"field"`
+	Field       Areas  `json:"field"`
 	Color       Color  `json:"color"`
 	StrokeColor Color  `json:"strokeColor"`
 
