@@ -15,6 +15,7 @@ import (
 	"html/template"
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -522,3 +523,34 @@ func makeFileEtag(path string) (string, error) {
 	}
 	return formatEtag(etagHash), nil
 }
+
+func newFrames(frameCount int, line tmemes.TextLine) frames {
+	na := len(line.Field)
+	fpa := math.Ceil(float64(frameCount) / float64(na))
+	return frames{line: line, framesPerArea: int(fpa)}
+}
+
+// A frames value wraps a TextLine with the ability to figure out which of
+// possibly-multiple positions should be rendered at a given frame index.
+type frames struct {
+	line          tmemes.TextLine
+	framesPerArea int
+}
+
+// frame returns the frame information for index i ≥ 0.
+func (f frames) frame(i int) frame {
+	if len(f.line.Field) == 1 {
+		return frame{f.line, 0}
+	}
+	pos := (i / f.framesPerArea) % len(f.line.Field)
+	return frame{f.line, pos}
+}
+
+// A frame wraps a single-frame view of a movable text line.  Call the Area
+// method to get the current position for the line.
+type frame struct {
+	tmemes.TextLine
+	pos int
+}
+
+func (f frame) area() tmemes.Area { return f.Field[f.pos] }

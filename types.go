@@ -98,7 +98,6 @@ type Area struct {
 	Y      float64 `json:"y"`                // y offset of anchor as a fraciton 0..1 of width
 	Width  float64 `json:"width,omitempty"`  // width of text box as a fraction of image width
 	Height float64 `json:"height,omitempty"` // height of text box as a fraction of image height
-	Count  int     `json:"count,omitempty"`  // number of consecutive frames at this position (0 means 1)
 
 	// N.B. If width == 0 or height == 0, the full dimension can be used.
 }

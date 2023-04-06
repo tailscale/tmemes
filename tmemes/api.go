@@ -26,6 +26,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/creachadair/taskgroup"
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
 	"github.com/tailscale/tmemes"
@@ -333,22 +334,39 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 	if len(srcGif.Image) == 0 {
 		return errors.New("no frames in GIF")
 	}
-	bounds := srcGif.Image[0].Bounds()
-	dc := gg.NewContext(bounds.Dx(), bounds.Dy())
-	for _, t := range m.TextOverlay {
-		if err := s.overlayTextOnImage(dc, t, bounds); err != nil {
-			return err
-		}
-	}
-	img := dc.Image()
-	// Add text to each frame of the GIF
 
-	var wg sync.WaitGroup
+	lineFrames := make([]frames, len(m.TextOverlay))
+	for i, tl := range m.TextOverlay {
+		lineFrames[i] = newFrames(len(srcGif.Image), tl)
+	}
+
+	g := taskgroup.New(nil)
+
+	bounds := srcGif.Image[0].Bounds()
+	dcs := make([]*gg.Context, len(srcGif.Image))
+	for i := range dcs {
+		i := i
+		dc := gg.NewContext(bounds.Dx(), bounds.Dy())
+		dcs[i] = dc
+
+		g.Go(func() error {
+			for _, f := range lineFrames {
+				if err := s.overlayTextOnImage(dc, f.frame(i), bounds); err != nil {
+					return err
+				}
+			}
+			return nil
+		})
+	}
+	if err := g.Wait(); err != nil {
+		return err
+	}
+
+	// Add text to each frame of the GIF
 	for i := range srcGif.Image {
 		i := i
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
+		img := dcs[i].Image()
+		g.Go(taskgroup.NoError(func() {
 			frame := srcGif.Image[i]
 			// Create a new image context
 			pt := image.NewPaletted(frame.Bounds(), frame.Palette)
@@ -357,9 +375,11 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 			draw.Draw(pt, bounds, img, bounds.Min, draw.Over)
 			// Update the frame
 			srcGif.Image[i] = pt
-		}()
+		}))
 	}
-	wg.Wait()
+	if err := g.Wait(); err != nil {
+		return err
+	}
 
 	// Save the modified GIF
 	dstFile, err := os.Create(cachePath)
@@ -422,7 +442,7 @@ func (s *tmemeServer) generateMacro(m *tmemes.Macro, cachePath string) (retErr e
 	dc := gg.NewContext(srcImage.Bounds().Dx(), srcImage.Bounds().Dy())
 	bounds := srcImage.Bounds()
 	for _, tl := range m.TextOverlay {
-		if err := s.overlayTextOnImage(dc, tl, bounds); err != nil {
+		if err := s.overlayTextOnImage(dc, newFrames(1, tl).frame(0), bounds); err != nil {
 			return err
 		}
 	}
@@ -470,7 +490,7 @@ func oneForZero(v float64) float64 {
 	return v
 }
 
-func (s *tmemeServer) overlayTextOnImage(dc *gg.Context, tl tmemes.TextLine, bounds image.Rectangle) error {
+func (s *tmemeServer) overlayTextOnImage(dc *gg.Context, tl frame, bounds image.Rectangle) error {
 	text := strings.TrimSpace(tl.Text)
 	if text == "" {
 		return nil
@@ -480,10 +500,10 @@ func (s *tmemeServer) overlayTextOnImage(dc *gg.Context, tl tmemes.TextLine, bou
 	font := s.fontForSize(fontSize)
 	dc.SetFontFace(font)
 
-	width := oneForZero(tl.Field.Width) * float64(bounds.Dx())
+	width := oneForZero(tl.Field[0].Width) * float64(bounds.Dx())
 	lineSpacing := 1.25
-	x := tl.Field.X * float64(bounds.Dx())
-	y := tl.Field.Y * float64(bounds.Dy())
+	x := tl.area().X * float64(bounds.Dx())
+	y := tl.area().Y * float64(bounds.Dy())
 	ax := 0.5
 	ay := 1.0
 	fontHeight := dc.FontHeight()
@@ -574,17 +594,23 @@ func (s *tmemeServer) serveAPIMacroPost(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	for _, tl := range m.TextOverlay {
-		if tl.Field.X < 0 || tl.Field.X > 1 {
-			http.Error(w, "invalid x", http.StatusBadRequest)
+		if len(tl.Field) == 0 {
+			http.Error(w, "no fields specified", http.StatusBadRequest)
 			return
 		}
-		if tl.Field.Y < 0 || tl.Field.Y > 1 {
-			http.Error(w, "invalid y", http.StatusBadRequest)
-			return
-		}
-		if tl.Field.Width < 0 || tl.Field.Width > 1 {
-			http.Error(w, "invalid width", http.StatusBadRequest)
-			return
+		for _, f := range tl.Field {
+			if f.X < 0 || f.X > 1 {
+				http.Error(w, "invalid x", http.StatusBadRequest)
+				return
+			}
+			if f.Y < 0 || f.Y > 1 {
+				http.Error(w, "invalid y", http.StatusBadRequest)
+				return
+			}
+			if f.Width < 0 || f.Width > 1 {
+				http.Error(w, "invalid width", http.StatusBadRequest)
+				return
+			}
 		}
 	}
 

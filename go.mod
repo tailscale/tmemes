@@ -4,8 +4,10 @@ go 1.20
 
 require (
 	github.com/creachadair/mds v0.0.1
+	github.com/creachadair/taskgroup v0.5.1
 	github.com/fogleman/gg v1.3.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
+	github.com/google/go-cmp v0.5.9
 	github.com/slack-go/slack v0.12.1
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 	golang.org/x/image v0.6.0
@@ -38,7 +40,6 @@ require (
 	github.com/godbus/dbus/v5 v5.0.6 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/btree v1.0.1 // indirect
-	github.com/google/go-cmp v0.5.9 // indirect
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
 	github.com/hdevalence/ed25519consensus v0.0.0-20220222234857-c00d1f31bab3 // indirect
