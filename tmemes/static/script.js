@@ -240,7 +240,7 @@
   }
 
   function downvoteMacro(id, upvoteElement, downvoteElement) {
-    fetch(`/api/macro/${id}/downvote`, {
+    fetch(`/api/vote/${id}/down`, {
       method: "PUT",
     })
       .then(function (response) {
@@ -256,7 +256,7 @@
   }
 
   function upvoteMacro(id, upvoteElement, downvoteElement) {
-    fetch(`/api/macro/${id}/upvote`, {
+    fetch(`/api/vote/${id}/up`, {
       method: "PUT",
     })
       .then(function (response) {

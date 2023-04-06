@@ -536,8 +536,6 @@ func (s *tmemeServer) serveAPIMacro(w http.ResponseWriter, r *http.Request) {
 		s.serveAPIMacroPost(w, r)
 	case "DELETE":
 		s.serveAPIMacroDelete(w, r)
-	case "PUT":
-		s.serveAPIMacroPut(w, r)
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}
@@ -715,24 +713,24 @@ func (s *tmemeServer) serveAPIMacroDelete(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (s *tmemeServer) serveAPIMacroPut(w http.ResponseWriter, r *http.Request) {
+func (s *tmemeServer) serveAPIVotePut(w http.ResponseWriter, r *http.Request) {
 	whois := s.checkAccess(w, r, "vote")
 	if whois == nil {
 		return // error already sent
 	}
 
-	// Accept /api/macro/:id/{up,down}vote
+	// Accept /api/vote/:id/{up,down}
 	path, op := r.URL.Path, 0
-	if v, ok := strings.CutSuffix(path, "/upvote"); ok {
+	if v, ok := strings.CutSuffix(path, "/up"); ok {
 		path, op = v, 1
-	} else if v, ok := strings.CutSuffix(path, "/downvote"); ok {
+	} else if v, ok := strings.CutSuffix(path, "/down"); ok {
 		path, op = v, -1
 	} else {
 		http.Error(w, "missing vote type", http.StatusBadRequest)
 		return
 	}
 
-	m, ok, err := getSingleFromIDInPath(path, "api/macro", s.db.Macro)
+	m, ok, err := getSingleFromIDInPath(path, "api/vote", s.db.Macro)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -906,6 +904,8 @@ func (s *tmemeServer) serveAPIVote(w http.ResponseWriter, r *http.Request) {
 		s.serveAPIVoteGet(w, r)
 	case "DELETE":
 		s.serveAPIVoteDelete(w, r)
+	case "PUT":
+		s.serveAPIVotePut(w, r)
 	default:
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 	}

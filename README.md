@@ -76,9 +76,6 @@ The server exposes an API over HTTP. There are three buckets of methods:
 - `POST /api/macro` create a new macro. The `POST` body must be a JSON
   `tmemes.Macro` object (`types.go`).
 
-- `PUT /api/macro/:id/upvote` and `PUT /api/macro/:id/downvote` to set an
-  upvote or downvote for a single macro by ID, for the calling user.
-
 - `GET /api/macro` get all macros `{"macros":[...], "total":<num>}`.
 
   The query parameters `page=N` and `count=M` allow pagination, returning the
@@ -126,6 +123,9 @@ The server exposes an API over HTTP. There are three buckets of methods:
   specified macro ID. This is a no-op without error if the user did not vote on
   that macro.
 
+- `PUT /api/vote/:id/up` and `PUT /api/macro/:id/down` to set an upvote or
+  downvote for a single macro by ID, for the calling user.
+
 - `GET /content/template/:id` fetch image content for the specified template.
   An optional trailing `.ext` (e.g., `.jpg`) is allowed, but it must match the
   stored format.
@@ -159,7 +159,7 @@ Add anything you think should be done, even if you don't want to do it yourself.
 - [ ] (mjf) See about writing some kind of blog post about this experience. We
       agreed this was like a really fun hackathon or "LAN party programming".
       Maybe something for .dev or a culture post on the main blog?
-- [ ] (maisem) show macros by user [API done, UI pending]
+- [ ] (maisem) show macros by user
 - [ ] (maisem) add slack integration [partly done?]
 - [ ] (mjf) add a "viewed" counter?
 - [x] (jenny) add up/down vote
