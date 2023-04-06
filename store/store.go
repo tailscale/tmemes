@@ -403,13 +403,18 @@ func (db *DB) AddTemplate(t *tmemes.Template, fileExt string, data io.Reader) er
 	return db.updateTemplateLocked(t)
 }
 
-func (db *DB) GetVote(ctx context.Context, userID tailcfg.UserID, macroID int) (vote int, err error) {
+// GetVote returns the given user's vote on a single macro.
+// If vote < 0, the user downvoted this macro.
+// If vote == 0, the user did not vote on this macro.
+// If vote > 0, the user upvoted this macro.
+func (db *DB) GetVote(userID tailcfg.UserID, macroID int) (vote int, err error) {
 	tx, err := db.sqldb.Begin()
 	if err != nil {
 		return 0, err
 	}
 	defer tx.Rollback()
-	if err := tx.QueryRowContext(ctx, `SELECT vote FROM Votes WHERE user_id = ? AND macro_id = ?`, userID, macroID).Scan(&vote); err != nil {
+	if err := tx.QueryRow(`SELECT vote FROM Votes WHERE user_id = ? AND macro_id = ?`,
+		userID, macroID).Scan(&vote); err != nil {
 		if err == sql.ErrNoRows {
 			return 0, nil
 		}
