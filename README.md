@@ -123,7 +123,7 @@ The server exposes an API over HTTP. There are three buckets of methods:
   specified macro ID. This is a no-op without error if the user did not vote on
   that macro.
 
-- `PUT /api/vote/:id/up` and `PUT /api/macro/:id/down` to set an upvote or
+- `PUT /api/vote/:id/up` and `PUT /api/vote/:id/down` to set an upvote or
   downvote for a single macro by ID, for the calling user.
 
 - `GET /content/template/:id` fetch image content for the specified template.
