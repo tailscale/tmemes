@@ -167,7 +167,7 @@ Add anything you think should be done, even if you don't want to do it yourself.
 - [ ] (mjf) downsize big templates when they're uploaded
 - [ ] (mjf) self-updating timeline on the macros view or maybe a new view?
 - [ ] (mjf) allow text colour and scale to be adjusted in the UI
-- [ ] (mjf) more flexible text placement in the UU (more lines, locations)
+- [ ] (mjf) more flexible text placement in the UI (more lines, locations)
 - [x] (mjf) support pagination for /api/templates too
 - [x] (mjf) paint text with a contrast-colour outline
 - [ ] (jenny) support pagination in the frontend
@@ -180,3 +180,4 @@ Add anything you think should be done, even if you don't want to do it yourself.
 - [ ] (s) allow arbitrary number of overlays
 - [ ] (s) handle multiple files dropped for upload
 - [ ] (s) move upload form to top of templates page?
+- [ ] (mjf) allow captions to have timed visibility (suggested by Brad)
