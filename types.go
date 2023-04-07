@@ -99,6 +99,10 @@ type Area struct {
 	Width  float64 `json:"width,omitempty"`  // width of text box as a fraction of image width
 	Height float64 `json:"height,omitempty"` // height of text box as a fraction of image height
 
+	// If true, interpolate the distance between this area and the next in
+	// sequence, when rendering multiple frames.
+	Tween bool `json:"tween,omitempty"`
+
 	// N.B. If width == 0 or height == 0, the full dimension can be used.
 }
 

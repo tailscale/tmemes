@@ -540,17 +540,36 @@ type frames struct {
 // frame returns the frame information for index i ≥ 0.
 func (f frames) frame(i int) frame {
 	if len(f.line.Field) == 1 {
-		return frame{f.line, 0}
+		return frame{f.line, 0, 0, 1}
 	}
 	pos := (i / f.framesPerArea) % len(f.line.Field)
-	return frame{f.line, pos}
+	return frame{f.line, pos, i, f.framesPerArea}
 }
 
 // A frame wraps a single-frame view of a movable text line.  Call the Area
 // method to get the current position for the line.
 type frame struct {
 	tmemes.TextLine
-	pos int
+	pos, i, fpa int
 }
 
-func (f frame) area() tmemes.Area { return f.Field[f.pos] }
+func (f frame) area() tmemes.Area {
+	cur := f.Field[f.pos]
+	if !cur.Tween {
+		return cur
+	}
+	if rem := f.i % f.fpa; rem != 0 {
+		// Find the next area in sequence (not just the next frame).
+		npos := ((f.i + f.fpa) / f.fpa) % len(f.Field)
+		next := f.Field[npos]
+
+		// Compute a linear interpolation and update the apparent position.
+		// We have a copy, so it's safe to update in-place.
+		dx := (next.X - cur.X) / float64(f.fpa)
+		dy := (next.Y - cur.Y) / float64(f.fpa)
+		cur.X += float64(rem) * dx
+		cur.Y += float64(rem) * dy
+
+	}
+	return cur
+}
