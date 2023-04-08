@@ -21,6 +21,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strconv"
 	"strings"
 	"sync"
@@ -58,6 +59,9 @@ type tmemeServer struct {
 	lastUpdatedUserProfiles time.Time
 }
 
+// initialize sets up the state of the server and checks the integrity of its
+// database to make it ready to serve. Any error it reports is considered
+// fatal.
 func (s *tmemeServer) initialize(ts *tsnet.Server) error {
 	// Populate superusers.
 	if *adminUsers != "" {
@@ -137,9 +141,9 @@ func init() {
 
 var errNotFound = errors.New("not found")
 
-// userFromID returns the user profile for the given user ID.
-// If the user profile is not found, it will attempt to fetch
-// the latest user profiles from the tsnet server.
+// userFromID returns the user profile for the given user ID.  If the user
+// profile is not found, it will attempt to fetch the latest user profiles from
+// the tsnet server.
 func (s *tmemeServer) userFromID(ctx context.Context, id tailcfg.UserID) (*tailcfg.UserProfile, error) {
 	s.mu.Lock()
 	up, ok := s.userProfiles[id]
@@ -209,6 +213,12 @@ func (s *tmemeServer) newMux() *http.ServeMux {
 	return mux
 }
 
+// serveContentTemplate serves template image content.
+//
+// API: /content/template/:id[.ext]
+//
+// A file extension is optional, but if .ext is included, it must match the
+// stored value.
 func (s *tmemeServer) serveContentTemplate(w http.ResponseWriter, r *http.Request) {
 	serveMetrics.Add("content-template", 1)
 	const apiPath = "/content/template/"
@@ -245,6 +255,13 @@ func (s *tmemeServer) serveContentTemplate(w http.ResponseWriter, r *http.Reques
 	s.serveFileCached(w, r, t.Path, 365*24*time.Hour)
 }
 
+// serveContentMacro serves macro image content. If the requested macro is not
+// already in the cache, it is rendered and cached before returning.
+//
+// API: /content/macro/:id[.ext]
+//
+// A file extension is optional, but if .ext is included, it must match the
+// file extension stored with the macro's template.
 func (s *tmemeServer) serveContentMacro(w http.ResponseWriter, r *http.Request) {
 	serveMetrics.Add("content-macro", 1)
 	const apiPath = "/content/macro/"
@@ -305,6 +322,8 @@ func (s *tmemeServer) serveContentMacro(w http.ResponseWriter, r *http.Request) 
 	s.serveFileCached(w, r, cachePath, 24*time.Hour)
 }
 
+// serveFileCached is a wrapper for http.ServeFile that populates cache-control
+// and etag headers.
 func (s *tmemeServer) serveFileCached(w http.ResponseWriter, r *http.Request, path string, maxAge time.Duration) {
 	w.Header().Set("Cache-Control", fmt.Sprintf(
 		"public, max-age=%d, no-transform", maxAge/time.Second))
@@ -314,6 +333,11 @@ func (s *tmemeServer) serveFileCached(w http.ResponseWriter, r *http.Request, pa
 	http.ServeFile(w, r, path)
 }
 
+// generateMacroGIF renders the text specified by m onto the template GIF
+// stored in srcFile. On success it writes the generated macro to cachePath.
+//
+// If srcFile contains multiple frames, it renders the text onto each frame
+// according to the timing and position settings defined in its overlay.
 func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFile *os.File) (retErr error) {
 	macroMetrics.Add("generate-gif", 1)
 	log.Printf("generating GIF for macro %d", m.ID)
@@ -340,7 +364,7 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 		lineFrames[i] = newFrames(len(srcGif.Image), tl)
 	}
 
-	g := taskgroup.New(nil)
+	g, run := taskgroup.New(nil).Limit(runtime.NumCPU())
 
 	bounds := srcGif.Image[0].Bounds()
 	dcs := make([]*gg.Context, len(srcGif.Image))
@@ -349,7 +373,7 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 		dc := gg.NewContext(bounds.Dx(), bounds.Dy())
 		dcs[i] = dc
 
-		g.Go(func() error {
+		run(func() error {
 			for _, f := range lineFrames {
 				if !f.visibleAt(i) {
 					continue
@@ -368,7 +392,7 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 	for i := range srcGif.Image {
 		i := i
 		img := dcs[i].Image()
-		g.Go(taskgroup.NoError(func() {
+		run(taskgroup.NoError(func() {
 			frame := srcGif.Image[i]
 			// Create a new image context
 			pt := image.NewPaletted(frame.Bounds(), frame.Palette)
@@ -406,18 +430,25 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 	return dstFile.Close()
 }
 
+// fontSizeForImage computes a recommend font size in points for the given image.
 func fontSizeForImage(img image.Image) int {
 	const typeHeightFraction = 0.15
 	points := int(math.Round((float64(img.Bounds().Dy()) * 0.75) * typeHeightFraction))
 	return points
 }
 
+// fontForSize constructs a new font.Face for the specified point size.
 func (s *tmemeServer) fontForSize(points int) font.Face {
 	return truetype.NewFace(oswaldSemiBold, &truetype.Options{
 		Size: float64(points),
 	})
 }
 
+// generateMacro renders the text specified by m onto its template image.  On
+// success, it writes the generated macro to cachePath.
+//
+// Note this method will automatically dispatch to generateMacroGIF for
+// templates in GIF format.
 func (s *tmemeServer) generateMacro(m *tmemes.Macro, cachePath string) (retErr error) {
 	tp, err := s.db.TemplatePath(m.TemplateID)
 	if err != nil {
@@ -492,6 +523,7 @@ func oneForZero(v float64) float64 {
 	return v
 }
 
+// overlayTextOnImage paints the specified text line on a single image frame.
 func (s *tmemeServer) overlayTextOnImage(dc *gg.Context, tl frame, bounds image.Rectangle) error {
 	text := strings.TrimSpace(tl.Text)
 	if text == "" {
@@ -583,6 +615,12 @@ func (s *tmemeServer) checkAccess(w http.ResponseWriter, r *http.Request, op str
 	return whois
 }
 
+// serveAPIMacroPost implements the API for creating new image macros.
+//
+// API: POST /api/macro
+//
+// The payload must be of type application/json encoding a tmemes.Macro.  On
+// success, the filled-in macro object is written back to the caller.
 func (s *tmemeServer) serveAPIMacroPost(w http.ResponseWriter, r *http.Request) {
 	whois := s.checkAccess(w, r, "create macros")
 	if whois == nil {
@@ -641,6 +679,14 @@ func (s *tmemeServer) serveAPIMacroPost(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// creatorUserID parses the "creator" query parameter to identify a user ID for
+// which filtering should be done.
+//
+// If the query parameter is not present, it returns (0, nil).
+// If the query parameter is "anon" or "anonymous", it returns (-1, nil).
+// Otherwise, on success, it returns a positive user ID, but note that the
+// caller is responsible for checking whether that ID corresponds to a real
+// user on the tailnet.
 func creatorUserID(r *http.Request) (tailcfg.UserID, error) {
 	c := r.URL.Query().Get("creator")
 	if c == "" {
@@ -659,6 +705,13 @@ func creatorUserID(r *http.Request) (tailcfg.UserID, error) {
 	return tailcfg.UserID(id), nil
 }
 
+// serveAPIMacroGet returns metadata about image macros.
+//
+// API: /api/macro/:id   -- one macro by ID
+// API: /api/macro       -- all macros defined
+//
+// This API supports pagination (see parsePageOptions).
+// The result objects are JSON tmemes.Macro values.
 func (s *tmemeServer) serveAPIMacroGet(w http.ResponseWriter, r *http.Request) {
 	m, ok, err := getSingleFromIDInPath(r.URL.Path, "api/macro", s.db.Macro)
 	if err != nil {
@@ -711,6 +764,14 @@ func (s *tmemeServer) serveAPIMacroGet(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// serveAPIMacroDelete implements deletion of image macros. Only the user who
+// created a macro or an admin can delete a macro. Note that because
+// unattributed macros do not store a user ID, this means only admins can
+// remove anonymous macros.
+//
+// API: DELETE /api/macro/:id
+//
+// On success, the deleted macro object is written back to the caller.
 func (s *tmemeServer) serveAPIMacroDelete(w http.ResponseWriter, r *http.Request) {
 	whois := s.checkAccess(w, r, "delete macros")
 	if whois == nil {
@@ -741,6 +802,11 @@ func (s *tmemeServer) serveAPIMacroDelete(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// serveAPIVotePut implements voting on macros. Unlike images, votes cannot be
+// unattributed; each user may vote at most once for a macro.
+//
+// API: PUT /api/vote/:id/up   -- upvote a macro by ID
+// API: PUT /api/vote/:id/down -- downvote a macro by ID
 func (s *tmemeServer) serveAPIVotePut(w http.ResponseWriter, r *http.Request) {
 	whois := s.checkAccess(w, r, "vote")
 	if whois == nil {
@@ -790,6 +856,13 @@ func (s *tmemeServer) serveAPITemplate(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// serveAPITemplateGet returns metadata about template images.
+//
+// API: /api/template/:id   -- one template by ID
+// API: /api/template       -- all templates defined
+//
+// This API supports pagination (see parsePageOptions).
+// The result objects are JSON tmemes.Template values.
 func (s *tmemeServer) serveAPITemplateGet(w http.ResponseWriter, r *http.Request) {
 	t, ok, err := getSingleFromIDInPath(r.URL.Path, "api/template", s.db.Template)
 	if err != nil {
@@ -836,6 +909,15 @@ func (s *tmemeServer) serveAPITemplateGet(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// serveAPITemplatePost implements creating (uploading) new template images.
+//
+// API: POST /api/template
+//
+// The payload must be of type multipart/form-data, and supports the fields:
+//
+//   - image: the image file to upload (required)
+//   - name: a text description of the template (required)
+//   - anon: if present and true, create an unattributed template
 func (s *tmemeServer) serveAPITemplatePost(w http.ResponseWriter, r *http.Request) {
 	whois := s.checkAccess(w, r, "create templates")
 	if whois == nil {
@@ -895,6 +977,14 @@ func (s *tmemeServer) serveAPITemplatePost(w http.ResponseWriter, r *http.Reques
 	http.Redirect(w, r, redirect, http.StatusFound)
 }
 
+// serveAPITemplateDelete implements deletion of templates. Only the user who
+// created a template or an admin can delete a template. Note that because
+// unattributed templates do not store a user ID, this means only admins can
+// remove anonymous templates.
+//
+// API: DELETE /api/template/:id
+//
+// On success, the deleted template object is written back to the caller.
 func (s *tmemeServer) serveAPITemplateDelete(w http.ResponseWriter, r *http.Request) {
 	whois := s.checkAccess(w, r, "delete templates")
 	if whois == nil {
@@ -939,6 +1029,12 @@ func (s *tmemeServer) serveAPIVote(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// serveAPIVoteGet reports vote data for the calling user.
+//
+// API: /api/vote     -- report all votes for the caller
+// API: /api/vote/:id -- report the user's vote on a macro ID
+//
+// Vote values are -1 (downvote), 0 (unvoted), and 1 (upvote).
 func (s *tmemeServer) serveAPIVoteGet(w http.ResponseWriter, r *http.Request) {
 	whois := s.checkAccess(w, r, "get votes")
 	if whois == nil {
@@ -999,6 +1095,12 @@ func (s *tmemeServer) serveAPIVoteGet(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// serveAPIVoteDelete implements removal of a user's vote from a macro.
+//
+// API: DELETE /api/vote/:id
+//
+// This succeeds even if the user had not voted on the specified macro,
+// provided the user is valid and the macro exists.
 func (s *tmemeServer) serveAPIVoteDelete(w http.ResponseWriter, r *http.Request) {
 	whois := s.checkAccess(w, r, "delete votes")
 	if whois == nil {

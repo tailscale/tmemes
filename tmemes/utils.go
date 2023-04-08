@@ -143,6 +143,8 @@ func makeFileEtag(path string) (string, error) {
 	return formatEtag(etagHash), nil
 }
 
+// newFrames constructs a frame tracker for a text line given an animation with
+// the specified frameCount.
 func newFrames(frameCount int, line tmemes.TextLine) frames {
 	na := len(line.Field)
 	fpa := math.Ceil(float64(frameCount) / float64(na))

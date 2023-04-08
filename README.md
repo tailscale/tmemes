@@ -177,7 +177,7 @@ Add anything you think should be done, even if you don't want to do it yourself.
 - [ ] (mjf) render timestamps on the browser so they show the user's local time.
 - [x] (mjf) support cache control headers for image data
 - [ ] (s) generate macro preview in go (wasm)
-- [ ] (s) allow arbitrary number of overlays
+- [ ] (s) allow arbitrary number of overlays in the UI
 - [ ] (s) handle multiple files dropped for upload
 - [ ] (s) move upload form to top of templates page?
-- [ ] (mjf) allow captions to have timed visibility (suggested by Brad)
+- [x] (mjf) allow captions to have timed visibility (suggested by Brad)
