@@ -18,7 +18,7 @@ import (
 
 // A Template defines a base template for an image macro.
 type Template struct {
-	ID        int            `json:"id"`
+	ID        int            `json:"id"`     // assigned by the server
 	Path      string         `json:"path"`   // path of image file
 	Width     int            `json:"width"`  // image width
 	Height    int            `json:"height"` // image height
@@ -88,19 +88,20 @@ func (a *Areas) UnmarshalJSON(data []byte) error {
 	}
 }
 
-// An Area defines a rectangular region of an image where text can go.  Each
-// area has an anchor point, relative to the top-left of the image, and a
-// target width and height as fractions of the image size.  Text drawn within
-// an area should be scaled so that the resulting box does not exceed those
-// dimensions.
+// An Area defines a region of an image where text is placed.  Each area has an
+// anchor point, relative to the top-left of the image, and a target width and
+// height as fractions of the image size.  Text drawn within an area should be
+// scaled so that the resulting box does not exceed those dimensions.
 type Area struct {
-	X      float64 `json:"x"`                // x offset of anchor as a fraction 0..1 of width
-	Y      float64 `json:"y"`                // y offset of anchor as a fraciton 0..1 of width
-	Width  float64 `json:"width,omitempty"`  // width of text box as a fraction of image width
-	Height float64 `json:"height,omitempty"` // height of text box as a fraction of image height
+	X     float64 `json:"x"`               // x offset of anchor as a fraction 0..1 of width
+	Y     float64 `json:"y"`               // y offset of anchor as a fraciton 0..1 of height
+	Width float64 `json:"width,omitempty"` // width of text box as a fraction of image width
 
-	// If true, interpolate the distance between this area and the next in
+	// If true, adjust the effective coordinates for each frame by interpolating
+	// the distance between the given X, Y and the X, Y of the next area in
 	// sequence, when rendering multiple frames.
+	//
+	// This is ignored when rendering on a single-frame template.
 	Tween bool `json:"tween,omitempty"`
 
 	// N.B. If width == 0 or height == 0, the full dimension can be used.
@@ -115,11 +116,11 @@ type TextLine struct {
 
 	// if > 0, do not show the text line before this frame fraction.
 	// If = 0, show beginning at the first frame.
-	Start float64 `json:"start,omitempty"`
+	Start float64 `json:"start,omitempty"` // 0..1
 
 	// If > Start, hide the text after this frame fraction.
 	// Otherwise, do not hide the text after the start index.
-	End float64 `json:"end,omitempty"`
+	End float64 `json:"end,omitempty"` // 0..1
 
 	// TODO: size, typeface, linebreaks in long runs
 }
@@ -134,8 +135,8 @@ func MustColor(s string) Color {
 	return c
 }
 
-// A Color represents an RGB color encoded as hex.
-// Allows xxxxxx or xxx format.
+// A Color represents an RGB color encoded as hex. It supports encoding in JSON
+// as a string, allowing "#xxxxxx" or "#xxx" format (the "#" is optional).
 type Color [3]float64
 
 func (c Color) R() float64 { return c[0] }
@@ -212,6 +213,7 @@ var n2c = map[string]string{
 var c2n = make(map[string]string)
 
 func init() {
+	// Set up the reverse mapping from color code to name.
 	for n, c := range n2c {
 		_, ok := c2n[c]
 		if !ok {

@@ -52,8 +52,8 @@ func TestAreas(t *testing.T) {
           { "y": 5, "x":4, "height": 6 }
        ]`, Areas{
 			{X: 1, Y: 2, Width: 3},
-			{X: 4, Y: 5, Height: 6},
-		}, `[{"x":1,"y":2,"width":3},{"x":4,"y":5,"height":6}]`},
+			{X: 4, Y: 5},
+		}, `[{"x":1,"y":2,"width":3},{"x":4,"y":5}]`},
 	}
 	for _, tc := range tests {
 		var val Areas
