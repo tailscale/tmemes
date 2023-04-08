@@ -113,6 +113,14 @@ type TextLine struct {
 	Color       Color  `json:"color"`
 	StrokeColor Color  `json:"strokeColor"`
 
+	// if > 0, do not show the text line before this frame fraction.
+	// If = 0, show beginning at the first frame.
+	Start float64 `json:"start,omitempty"`
+
+	// If > Start, hide the text after this frame fraction.
+	// Otherwise, do not hide the text after the start index.
+	End float64 `json:"end,omitempty"`
+
 	// TODO: size, typeface, linebreaks in long runs
 }
 

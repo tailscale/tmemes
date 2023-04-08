@@ -351,7 +351,9 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 
 		g.Go(func() error {
 			for _, f := range lineFrames {
-				if err := s.overlayTextOnImage(dc, f.frame(i), bounds); err != nil {
+				if !f.visibleAt(i) {
+					continue
+				} else if err := s.overlayTextOnImage(dc, f.frame(i), bounds); err != nil {
 					return err
 				}
 			}
