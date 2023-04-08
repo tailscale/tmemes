@@ -110,14 +110,30 @@ type Area struct {
 // A TextLine is a single line of text with an optional alignment.
 type TextLine struct {
 	Text        string `json:"text"`
-	Field       Areas  `json:"field"`
 	Color       Color  `json:"color"`
 	StrokeColor Color  `json:"strokeColor"`
 
+	// The location(s) where the text should be drawn, it must be non-empty.
+	// For a single-frame image, only the first entry is used.
+	//
+	// For a multiple-frame image, the locations are applied cyclically to the
+	// frames of the image. Each area occupies an equal fraction of the frames,
+	// for example if there are 8 frames and 2 areas, each area is mapped to 4
+	// frames (Field[0] to frames 0, 1, 2, 3; Field[1] to frames 4, 5, 6, 7).
+	Field Areas `json:"field"`
+
+	// The first point in a multi-frame image where this text should be visible,
+	// as a fraction (0..1) of the total frames of the image. For example, in an
+	// image with 16 frames, 0.25 represents 4 frames.
+	//
 	// if > 0, do not show the text line before this frame fraction.
-	// If = 0, show beginning at the first frame.
+	// If = 0, show the text beginning at the first frame.
 	Start float64 `json:"start,omitempty"` // 0..1
 
+	// The last point in a multi-frame image where this text should be visible,
+	// as a fraction (0..1) of the total frames of the image. For example, in an
+	// image with 10 frames, 0.5 represents 5 frames.
+	//
 	// If > Start, hide the text after this frame fraction.
 	// Otherwise, do not hide the text after the start index.
 	End float64 `json:"end,omitempty"` // 0..1
