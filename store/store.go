@@ -2,6 +2,19 @@
 // SPDX-License-Identifier: BSD-3-Clause
 
 // Package store implements a data store for memes.
+//
+// # Structure
+//
+// A DB manages a directory in the filesystem. At the top level of the
+// directory is a SQLite database (index.db) that keeps track of metadata about
+// templates, macros, and votes. There are also subdirectories to store the
+// image data, "templates" and "macros".
+//
+// The "macros" subdirectory is a cache, and the DB maintains a background
+// polling thread that cleans up files that have not been accessed for a while.
+// It is safe to manually delete files inside the macros directory; the server
+// will re-create them on demand. Templates images are persistent, and should
+// not be modified or deleted.
 package store
 
 import (
@@ -9,7 +22,6 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	"image"
 	"io"
 	"log"
 	"os"
@@ -26,7 +38,9 @@ import (
 
 var subdirs = []string{"templates", "macros"}
 
-// A DB is a meme database.
+// A DB is a meme database. It consists of a directory containing files and
+// subdirectories holding images and metadata. A DB is safe for concurrent use
+// by multiple goroutines.
 type DB struct {
 	dir           string
 	stop          context.CancelFunc
@@ -70,7 +84,11 @@ func (o *Options) maxAccessAge() time.Duration {
 }
 
 // New creates or opens a data store.  A store is a directory that is created
-// if necessary. The DB assumes ownership of the directory contents.
+// if necessary. The DB assumes ownership of the directory contents.  A nil
+// *Options provides default settings (see [Options]).
+//
+// The caller should Close the DB when it is no longer in use, to ensure the
+// cache maintenance routine is stopped and cleaned up.
 func New(dirPath string, opts *Options) (*DB, error) {
 	if err := os.MkdirAll(dirPath, 0700); err != nil {
 		return nil, fmt.Errorf("store.New: %w", err)
@@ -99,10 +117,6 @@ func New(dirPath string, opts *Options) (*DB, error) {
 		sqldb:         sqldb,
 	}
 	if err := db.loadSQLiteIndex(); err != nil {
-		db.Close()
-		return nil, err
-	}
-	if err := db.backfillTemplateDimensions(); err != nil {
 		db.Close()
 		return nil, err
 	}
@@ -147,6 +161,7 @@ func (db *DB) SetCacheSeed(s string) error {
 }
 
 // Templates returns all the non-hidden templates in the store.
+// Templates are ordered non-decreasing by ID.
 func (db *DB) Templates() []*tmemes.Template {
 	db.mu.Lock()
 	all := make([]*tmemes.Template, 0, len(db.templates))
@@ -162,12 +177,14 @@ func (db *DB) Templates() []*tmemes.Template {
 	return all
 }
 
+// TemplatesByCreator returns all the non-hidden templates in the store created
+// by the specified user. The results are ordered non-decreasing by ID.
 func (db *DB) TemplatesByCreator(creator tailcfg.UserID) []*tmemes.Template {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 	var all []*tmemes.Template
 	for _, t := range db.templates {
-		if t.Creator == creator {
+		if !t.Hidden && t.Creator == creator {
 			all = append(all, t)
 		}
 	}
@@ -201,8 +218,8 @@ func (db *DB) AnyTemplate(id int) (*tmemes.Template, error) {
 	return t, nil
 }
 
-// SetTemplateHidden sets the "hidden" flag of a template.  Hidden templates
-// are not available for use in creating macros.
+// SetTemplateHidden sets (or clears) the "hidden" flag of a template.  Hidden
+// templates are not available for use in creating macros.
 func (db *DB) SetTemplateHidden(id int, hidden bool) error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
@@ -227,6 +244,7 @@ func canonicalTemplateName(name string) string {
 // TemplateByName returns the template data matching the given name.
 // Comparison is done without regard to case, leading and trailing whitespace
 // are removed, and interior whitespace, "-", and "_" are normalized to "-".
+// HIdden templates are excluded.
 func (db *DB) TemplateByName(name string) (*tmemes.Template, error) {
 	cn := canonicalTemplateName(name)
 	if cn == "" {
@@ -235,7 +253,7 @@ func (db *DB) TemplateByName(name string) (*tmemes.Template, error) {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 	for _, t := range db.templates {
-		if t.Name == cn {
+		if !t.Hidden && t.Name == cn {
 			return t, nil
 		}
 	}
@@ -243,6 +261,7 @@ func (db *DB) TemplateByName(name string) (*tmemes.Template, error) {
 }
 
 // TemplatePath returns the path of the file containing a template image.
+// Hidden templates are included.
 func (db *DB) TemplatePath(id int) (string, error) {
 	// N.B. We include hidden templates in this query, since the image may still
 	// be used by macros created before the template was hidden.
@@ -509,36 +528,4 @@ func (db *DB) UserVotes(userID tailcfg.UserID) (map[int]int, error) {
 		out[macroID] = vote
 	}
 	return out, rows.Err()
-}
-
-// backfillTemplateDimensions populates the width and height fields of templates
-// created before those fields started to be populated at template creation
-// time.
-func (db *DB) backfillTemplateDimensions() error {
-	db.mu.Lock()
-	defer db.mu.Unlock()
-	for _, t := range db.templates {
-		if t.Width != 0 {
-			continue
-		}
-		log.Printf("Backfilling dimensions for template %q...", t.Name)
-		tf, err := os.Open(t.Path)
-		if err != nil {
-			return err
-		}
-		defer tf.Close()
-
-		c, _, err := image.DecodeConfig(tf)
-		if err != nil {
-			return err
-		}
-		t.Width = c.Width
-		t.Height = c.Height
-
-		if err := db.updateTemplateLocked(t); err != nil {
-			return err
-		}
-		log.Printf(" ...success!")
-	}
-	return nil
 }

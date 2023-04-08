@@ -42,9 +42,6 @@ func (db *DB) loadSQLiteIndex() error {
 	db.mu.Lock()
 	defer db.mu.Unlock()
 
-	// Clean up legacy "static" files, no longer required.
-	os.RemoveAll(filepath.Join(db.dir, "static"))
-
 	merr := db.loadMacrosLocked()
 	terr := db.loadTemplatesLocked()
 	derr := db.loadMetadataLocked()
