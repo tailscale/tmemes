@@ -4,6 +4,13 @@ CREATE TABLE IF NOT EXISTS Templates (
   raw BLOB -- JSON tmemes.Template
 );
 
+CREATE TRIGGER IF NOT EXISTS TemplateDel
+  AFTER DELETE ON Templates FOR EACH ROW
+BEGIN
+  DELETE FROM Macros
+   WHERE json_extract(raw, '$.templateID') = OLD.id;
+END;
+
 CREATE TABLE IF NOT EXISTS Macros (
   id INTEGER PRIMARY KEY,
   raw BLOB -- JSON tmemes.Macro
