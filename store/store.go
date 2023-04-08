@@ -352,6 +352,9 @@ func (db *DB) AddMacro(m *tmemes.Macro) error {
 	}
 	db.mu.Lock()
 	defer db.mu.Unlock()
+	if _, ok := db.templates[m.TemplateID]; !ok {
+		return fmt.Errorf("template %d not found", m.TemplateID)
+	}
 	m.ID = db.nextMacroID
 	m.CreatedAt = time.Now().UTC()
 	db.nextMacroID++
