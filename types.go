@@ -49,6 +49,28 @@ type Macro struct {
 	Downvotes int `json:"downvotes,omitempty"`
 }
 
+// ValidForCreate reports whether m is valid for the creation of a new macro.
+func (m *Macro) ValidForCreate() error {
+	switch {
+	case m.ID != 0:
+		return errors.New("macro ID must be zero")
+	case m.TemplateID <= 0:
+		return errors.New("macro must have a template ID")
+	case len(m.TextOverlay) == 0:
+		return errors.New("macro must have an overlay")
+	case m.Upvotes != 0 || m.Downvotes != 0:
+		return errors.New("macro must not contain votes")
+	case m.Creator > 0:
+		return errors.New("invalid macro creator")
+	}
+	for _, tl := range m.TextOverlay {
+		if err := tl.ValidForCreate(); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 // Areas is a wrapper for a slice of Area values that optionally decodes from
 // JSON as either a single Area object or an array of Area values.
 // A length-1 Areas encodes as a plain object.
@@ -107,6 +129,20 @@ type Area struct {
 	// N.B. If width == 0 or height == 0, the full dimension can be used.
 }
 
+// ValidForCreate reports whether a is valid for creation of a new macro.
+func (a Area) ValidForCreate() error {
+	if a.X < 0 || a.X > 1 {
+		return fmt.Errorf("x out of range %g", a.X)
+	}
+	if a.Y < 0 || a.Y > 1 {
+		return fmt.Errorf("y out of range %g", a.Y)
+	}
+	if a.Width < 0 || a.Width > 1 {
+		return fmt.Errorf("width out of range %g", a.Width)
+	}
+	return nil
+}
+
 // A TextLine is a single line of text with an optional alignment.
 type TextLine struct {
 	Text        string `json:"text"`
@@ -139,6 +175,26 @@ type TextLine struct {
 	End float64 `json:"end,omitempty"` // 0..1
 
 	// TODO: size, typeface, linebreaks in long runs
+}
+
+// ValidForCreate reports whether t is valid for creation of a macro.
+func (t TextLine) ValidForCreate() error {
+	switch {
+	case t.Text == "":
+		return errors.New("text is empty")
+	case len(t.Field) == 0:
+		return errors.New("no fields specified")
+	case t.Start < 0 || t.Start > 1:
+		return fmt.Errorf("start out of range %g", t.Start)
+	case t.End < 0 || t.End > 1:
+		return fmt.Errorf("end out of range %g", t.End)
+	}
+	for _, f := range t.Field {
+		if err := f.ValidForCreate(); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // MustColor constructs a color from a known color name or hex specification

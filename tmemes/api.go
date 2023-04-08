@@ -632,41 +632,20 @@ func (s *tmemeServer) serveAPIMacroPost(w http.ResponseWriter, r *http.Request) 
 	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
-	}
-	for _, tl := range m.TextOverlay {
-		if len(tl.Field) == 0 {
-			http.Error(w, "no fields specified", http.StatusBadRequest)
-			return
-		}
-		for _, f := range tl.Field {
-			if f.X < 0 || f.X > 1 {
-				http.Error(w, "invalid x", http.StatusBadRequest)
-				return
-			}
-			if f.Y < 0 || f.Y > 1 {
-				http.Error(w, "invalid y", http.StatusBadRequest)
-				return
-			}
-			if f.Width < 0 || f.Width > 1 {
-				http.Error(w, "invalid width", http.StatusBadRequest)
-				return
-			}
-		}
+	} else if err := m.ValidForCreate(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 
-	// If the creator is negative, treat the macro as anonymous.  Otherwise the
-	// creator must be unset (zero).
-	if m.Creator > 0 {
-		http.Error(w, "invalid creator", http.StatusBadRequest)
-		return
-	} else if m.Creator == 0 {
-		m.Creator = whois.UserProfile.ID
-	} else {
+	// If the creator is negative, treat the macro as anonymous.
+	if m.Creator < 0 {
 		if !s.allowAnonymous {
 			http.Error(w, "anonymous macros not allowed", http.StatusForbidden)
 			return
 		}
 		m.Creator = -1 // normalize anonymous to -1
+	} else {
+		m.Creator = whois.UserProfile.ID
 	}
 
 	if err := s.db.AddMacro(&m); err != nil {
