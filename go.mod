@@ -8,6 +8,7 @@ require (
 	github.com/fogleman/gg v1.3.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/google/go-cmp v0.5.9
+	github.com/joshdk/quantize v0.0.0-20171110221748-65999d3a4c76
 	github.com/slack-go/slack v0.12.1
 	golang.org/x/exp v0.0.0-20230321023759-10a507213a29
 	golang.org/x/image v0.6.0

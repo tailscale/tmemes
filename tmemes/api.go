@@ -367,30 +367,54 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 	g, run := taskgroup.New(nil).Limit(runtime.NumCPU())
 	bounds := imageBounds(srcGif)
 
-	prev := image.NewPaletted(bounds, srcGif.Image[0].Palette) // empty
+	// Phase 1: Render all the frames into a bounding box big enough to hold all
+	// of them, keeping their relative position.
+	frames := make([]image.Image, len(srcGif.Image))
+	log.Printf("Begin rendering %d frames with %d overlays", len(frames), len(m.TextOverlay))
+	rStart := time.Now()
 	for i := range srcGif.Image {
-		i := i
-		cur := copyImage(prev, bounds)
-		mergeImage(cur, srcGif.Image[i])
-		prev = copyImage(cur, bounds)
+		i, frame := i, srcGif.Image[i]
 		run(func() error {
+			fb := frame.Bounds()
+			img := image.NewRGBA(bounds)
+			draw.Draw(img, fb, frame, fb.Min, draw.Over)
+
 			dc := gg.NewContext(bounds.Dx(), bounds.Dy())
 			for _, f := range lineFrames {
 				if !f.visibleAt(i) {
 					continue
-				}
-				if err := s.overlayTextOnImage(dc, f.frame(i), bounds); err != nil {
+				} else if err := s.overlayTextOnImage(dc, f.frame(i), bounds); err != nil {
 					return err
 				}
 			}
 			text := dc.Image()
-			draw.Draw(srcGif.Image[i], text.Bounds(), text, text.Bounds().Min, draw.Over)
+			draw.Draw(img, img.Bounds(), text, text.Bounds().Min, draw.Over)
+			frames[i] = img
 			return nil
 		})
 	}
 	if err := g.Wait(); err != nil {
 		return err
 	}
+	log.Printf("Rendering complete [render %v, total %v]",
+		time.Since(rStart).Round(time.Millisecond), time.Since(start).Round(time.Millisecond))
+
+	// Phase 2: Convert the frames back to paletted frames in the GIF.
+	eStart := time.Now()
+	for i := range srcGif.Image {
+		i, frame := i, frames[i]
+		run(taskgroup.NoError(func() {
+			// Re-generate the frame.
+			pt := image.NewPaletted(bounds, makeColorPalette(frame, 8))
+			draw.Draw(pt, bounds, frame, frame.Bounds().Min, draw.Over)
+			srcGif.Image[i] = pt
+		}))
+	}
+	if err := g.Wait(); err != nil {
+		return err
+	}
+	log.Printf("Re-encoded %d frames [encode %v, total %v]", len(frames),
+		time.Since(eStart).Round(time.Millisecond), time.Since(start).Round(time.Millisecond))
 
 	// Save the modified GIF
 	dstFile, err := os.Create(cachePath)
