@@ -18,6 +18,7 @@ import (
 	"github.com/creachadair/mds/slice"
 	"github.com/joshdk/quantize"
 	"github.com/tailscale/tmemes"
+	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
 
@@ -225,11 +226,19 @@ func imageBounds(g *gif.GIF) image.Rectangle {
 	return b.Sub(b.Min) // normalize to 0, 0
 }
 
-func makeColorPalette(img image.Image, bits int) color.Palette {
-	cs := quantize.Image(img, bits)
-	p := make(color.Palette, len(cs))
-	for i, c := range cs {
-		p[i] = c
+func makeColorPalette(imgs []image.Image) color.Palette {
+	m := make(map[color.Color]int)
+	for _, img := range imgs {
+		for _, c := range quantize.Image(img, 8) {
+			m[c]++
+		}
 	}
-	return p
+	ps := maps.Keys(m)
+	slices.SortFunc(ps, func(x, y color.Color) bool {
+		return m[x] > m[y]
+	})
+	if len(ps) > 256 {
+		ps = ps[:256]
+	}
+	return ps
 }
