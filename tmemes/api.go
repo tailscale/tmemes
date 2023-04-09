@@ -27,6 +27,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/andybons/gogif"
 	"github.com/creachadair/taskgroup"
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
@@ -359,20 +360,38 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 		return errors.New("no frames in GIF")
 	}
 
+	log.Print("Begin render")
 	lineFrames := make([]frames, len(m.TextOverlay))
 	for i, tl := range m.TextOverlay {
 		lineFrames[i] = newFrames(len(srcGif.Image), tl)
 	}
 
-	bounds := imageSize(srcGif)
-
 	g, run := taskgroup.New(nil).Limit(runtime.NumCPU())
-	dcs := make([]*gg.Context, len(srcGif.Image))
-	for i := range dcs {
-		i := i
-		dc := gg.NewContext(bounds.Dx(), bounds.Dy())
-		dcs[i] = dc
+	bounds := imageBounds(srcGif)
 
+	// Phase 1: Render all the frames into a bounding box big enough to hold all
+	// of them, keeping their relative position.
+	frames := make([]*image.RGBA, len(srcGif.Image))
+	for i := range srcGif.Image {
+		i, frame := i, srcGif.Image[i]
+		run(taskgroup.NoError(func() {
+			fb := frame.Bounds()
+			img := image.NewRGBA(bounds)
+			draw.Draw(img, fb, frame, fb.Min, draw.Over)
+			frames[i] = img
+		}))
+	}
+	if err := g.Wait(); err != nil {
+		return err
+	}
+	log.Printf("Rendered frames [%v elapsed]", time.Since(start))
+
+	// Phase 2: Render the text overlays and extract stamps at the corresponding
+	// location of each frame.
+	texts := make([]image.Image, len(srcGif.Image))
+	stamps := make([]*image.RGBA, len(srcGif.Image)+1) // sentinel at 0
+	for i := range srcGif.Image {
+		i, dc := i, gg.NewContext(bounds.Dx(), bounds.Dy())
 		run(func() error {
 			for _, f := range lineFrames {
 				if !f.visibleAt(i) {
@@ -381,31 +400,47 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 					return err
 				}
 			}
+
+			fr := frames[i] // now in union coordinates, from phase 1
+			fb := fr.Bounds()
+			mask := dc.AsMask()
+			img := image.NewRGBA(bounds)
+			draw.DrawMask(img, fb, fr, fb.Min, mask, mask.Bounds().Min, draw.Src)
+
+			texts[i] = dc.Image()
+			stamps[i+1] = img // + 1 because the next frame needs this stamp
 			return nil
 		})
 	}
 	if err := g.Wait(); err != nil {
 		return err
 	}
+	log.Printf("Rendered text overlays [%v elapsed]", time.Since(start))
 
-	// Add text to each frame of the GIF
+	// Phase 3: Compose the overlays with the rendered frames and the stamps to
+	// make the completed frames.
 	for i := range srcGif.Image {
-		i := i
-		img := dcs[i].Image()
+		i, text, stamp, frame := i, texts[i], stamps[i], frames[i]
 		run(taskgroup.NoError(func() {
-			frame := srcGif.Image[i]
-			// Create a new image context
-			pt := image.NewPaletted(frame.Bounds(), frame.Palette)
-			draw.Draw(pt, frame.Bounds(), frame, frame.Bounds().Min, draw.Src)
+			// If we have a stamp from a previous frame, blit it in.
+			// Everything should be in union coordinates by now.
+			if stamp != nil {
+				draw.Draw(frame, stamp.Bounds(), stamp, stamp.Bounds().Min, draw.Over)
+			}
+			// And now also the text.
+			draw.Draw(frame, text.Bounds(), text, text.Bounds().Min, draw.Over)
 
-			draw.Draw(pt, bounds, img, bounds.Min, draw.Over)
-			// Update the frame
+			// Re-generate the frame.
+			q := &gogif.MedianCutQuantizer{NumColor: len(srcGif.Image[i].Palette)}
+			pt := image.NewPaletted(bounds, nil)
+			q.Quantize(pt, bounds, frame, image.ZP)
 			srcGif.Image[i] = pt
 		}))
 	}
 	if err := g.Wait(); err != nil {
 		return err
 	}
+	log.Printf("Composed frames [%v elapsed]", time.Since(start))
 
 	// Save the modified GIF
 	dstFile, err := os.Create(cachePath)

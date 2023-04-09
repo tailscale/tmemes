@@ -215,17 +215,10 @@ func (f frame) area() tmemes.Area {
 	return cur
 }
 
-func imageSize(g *gif.GIF) image.Rectangle {
-	b := g.Image[0].Bounds()
-	dx, dy := b.Dx(), b.Dy()
-	for _, v := range g.Image[1:] {
-		vb := v.Bounds()
-		if vb.Dx() > dx {
-			dx = vb.Dx()
-		}
-		if vb.Dy() > dy {
-			dy = vb.Dy()
-		}
+func imageBounds(g *gif.GIF) image.Rectangle {
+	var b image.Rectangle
+	for _, v := range g.Image {
+		b = b.Union(v.Bounds())
 	}
-	return image.Rectangle{Max: image.Point{X: dx, Y: dy}}
+	return b.Sub(b.Min) // normalize to 0, 0
 }

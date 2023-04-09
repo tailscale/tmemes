@@ -3,6 +3,7 @@ module github.com/tailscale/tmemes
 go 1.20
 
 require (
+	github.com/andybons/gogif v0.0.0-20140526152223-16d573594812
 	github.com/creachadair/mds v0.0.1
 	github.com/creachadair/taskgroup v0.5.1
 	github.com/fogleman/gg v1.3.0
