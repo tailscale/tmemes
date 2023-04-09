@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"hash"
 	"image"
+	"image/color"
 	"image/gif"
 	"io"
 	"math"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/creachadair/mds/slice"
+	"github.com/joshdk/quantize"
 	"github.com/tailscale/tmemes"
 	"golang.org/x/exp/slices"
 )
@@ -221,4 +223,13 @@ func imageBounds(g *gif.GIF) image.Rectangle {
 		b = b.Union(v.Bounds())
 	}
 	return b.Sub(b.Min) // normalize to 0, 0
+}
+
+func makeColorPalette(img image.Image, bits int) color.Palette {
+	cs := quantize.Image(img, bits)
+	p := make(color.Palette, len(cs))
+	for i, c := range cs {
+		p[i] = c
+	}
+	return p
 }
