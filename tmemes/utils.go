@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"hash"
 	"image"
-	"image/color"
+	"image/draw"
 	"image/gif"
 	"io"
 	"math"
@@ -16,9 +16,7 @@ import (
 	"time"
 
 	"github.com/creachadair/mds/slice"
-	"github.com/joshdk/quantize"
 	"github.com/tailscale/tmemes"
-	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 )
 
@@ -226,19 +224,12 @@ func imageBounds(g *gif.GIF) image.Rectangle {
 	return b.Sub(b.Min) // normalize to 0, 0
 }
 
-func makeColorPalette(imgs []image.Image) color.Palette {
-	m := make(map[color.Color]int)
-	for _, img := range imgs {
-		for _, c := range quantize.Image(img, 8) {
-			m[c]++
-		}
-	}
-	ps := maps.Keys(m)
-	slices.SortFunc(ps, func(x, y color.Color) bool {
-		return m[x] > m[y]
-	})
-	if len(ps) > 256 {
-		ps = ps[:256]
-	}
-	return ps
+func copyImage(img *image.Paletted, r image.Rectangle) *image.Paletted {
+	cp := image.NewPaletted(r, img.Palette)
+	draw.Draw(cp, img.Bounds(), img, img.Bounds().Min, draw.Src)
+	return cp
+}
+
+func mergeImage(onto draw.Image, from image.Image) {
+	draw.Draw(onto, from.Bounds(), from, from.Bounds().Min, draw.Over)
 }
