@@ -401,11 +401,12 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 
 	// Phase 2: Convert the frames back to paletted frames in the GIF.
 	eStart := time.Now()
+	palette := makeColorPalette(frames)
 	for i := range srcGif.Image {
 		i, frame := i, frames[i]
 		run(taskgroup.NoError(func() {
 			// Re-generate the frame.
-			pt := image.NewPaletted(bounds, makeColorPalette(frame, 8))
+			pt := image.NewPaletted(bounds, palette)
 			draw.Draw(pt, bounds, frame, frame.Bounds().Min, draw.Over)
 			srcGif.Image[i] = pt
 		}))
