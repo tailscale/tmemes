@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"hash"
+	"image"
+	"image/gif"
 	"io"
 	"math"
 	"net/http"
@@ -211,4 +213,19 @@ func (f frame) area() tmemes.Area {
 
 	}
 	return cur
+}
+
+func imageSize(g *gif.GIF) image.Rectangle {
+	b := g.Image[0].Bounds()
+	dx, dy := b.Dx(), b.Dy()
+	for _, v := range g.Image[1:] {
+		vb := v.Bounds()
+		if vb.Dx() > dx {
+			dx = vb.Dx()
+		}
+		if vb.Dy() > dy {
+			dy = vb.Dy()
+		}
+	}
+	return image.Rectangle{Max: image.Point{X: dx, Y: dy}}
 }

@@ -364,9 +364,9 @@ func (s *tmemeServer) generateMacroGIF(m *tmemes.Macro, cachePath string, srcFil
 		lineFrames[i] = newFrames(len(srcGif.Image), tl)
 	}
 
-	g, run := taskgroup.New(nil).Limit(runtime.NumCPU())
+	bounds := imageSize(srcGif)
 
-	bounds := srcGif.Image[0].Bounds()
+	g, run := taskgroup.New(nil).Limit(runtime.NumCPU())
 	dcs := make([]*gg.Context, len(srcGif.Image))
 	for i := range dcs {
 		i := i
