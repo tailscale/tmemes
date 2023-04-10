@@ -1,0 +1,30 @@
+# A simple CI workflow to tide us over till we have something better.
+name: Go presubmit
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, reopened, synchronize]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Go presubmit
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        go-version: ['stable', 'oldstable']
+        os: ['ubuntu-latest']
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install Go ${{ matrix.go-version }}
+      uses: actions/setup-go@v3
+      with:
+        go-version: ${{ matrix.go-version }}
+        cache: true
+    - uses: creachadair/go-presubmit-action@v1
