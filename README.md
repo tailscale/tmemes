@@ -154,30 +154,4 @@ See `newMux()` in tmemes/api.go.
 
 ## TODO tasks
 
-Add anything you think should be done, even if you don't want to do it yourself.
-
-- [ ] (mjf) See about writing some kind of blog post about this experience. We
-      agreed this was like a really fun hackathon or "LAN party programming".
-      Maybe something for .dev or a culture post on the main blog?
-- [ ] (maisem) show macros by user
-- [ ] (maisem) add slack integration [partly done?]
-- [ ] (mjf) add a "viewed" counter?
-- [x] (jenny) add up/down vote
-- [x] (mjf) clean up the macro cache periodically in the background
-- [ ] (mjf) downsize big templates when they're uploaded
-- [ ] (mjf) self-updating timeline on the macros view or maybe a new view?
-- [ ] (mjf) allow text colour and scale to be adjusted in the UI
-- [ ] (mjf) more flexible text placement in the UI (more lines, locations)
-- [x] (mjf) support pagination for /api/templates too
-- [x] (mjf) paint text with a contrast-colour outline
-- [ ] (jenny) support pagination in the frontend
-- [ ] (jenny) support toggling sort order in the frontend
-- [ ] (jenny) support showing memes per creator
-- [ ] (mjf) support long polling to refresh the UI, like a websocket or SSE
-- [ ] (mjf) render timestamps on the browser so they show the user's local time.
-- [x] (mjf) support cache control headers for image data
-- [ ] (s) generate macro preview in go (wasm)
-- [ ] (s) allow arbitrary number of overlays in the UI
-- [ ] (s) handle multiple files dropped for upload
-- [ ] (s) move upload form to top of templates page?
-- [x] (mjf) allow captions to have timed visibility (suggested by Brad)
+Moved to: https://github.com/tailscale/tmemes/issues/4
