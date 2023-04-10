@@ -33,7 +33,6 @@ CREATE TABLE IF NOT EXISTS Votes (
   UNIQUE (user_id, macro_id)
 );
 
-DROP VIEW IF EXISTS VoteTotals;
 CREATE VIEW IF NOT EXISTS VoteTotals AS
   WITH upvotes AS (
     SELECT macro_id, sum(vote) up FROM Votes
