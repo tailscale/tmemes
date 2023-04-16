@@ -9,11 +9,9 @@ import (
 	"image/gif"
 	"log"
 	"math"
-	"runtime"
 	"strings"
 	"time"
 
-	"github.com/creachadair/taskgroup"
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
 	"github.com/tailscale/tmemes"
@@ -127,60 +125,48 @@ func Draw(srcImage image.Image, m *tmemes.Macro) image.Image {
 	return alpha
 }
 
-func DrawGIF(srcGif *gif.GIF, m *tmemes.Macro) *gif.GIF {
-	start := time.Now()
-
+func DrawGIF(img *gif.GIF, m *tmemes.Macro) *gif.GIF {
 	lineFrames := make([]frames, len(m.TextOverlay))
 	for i, tl := range m.TextOverlay {
-		lineFrames[i] = newFrames(len(srcGif.Image), tl)
+		lineFrames[i] = newFrames(len(img.Image), tl)
 	}
 
-	g, run := taskgroup.New(nil).Limit(runtime.NumCPU())
-	bounds := imageBounds(srcGif)
-
-	// Phase 1: Render all the frames into a bounding box big enough to hold all
-	// of them, keeping their relative position.
-	frames := make([]image.Image, len(srcGif.Image))
-	log.Printf("Begin rendering %d frames with %d overlays", len(frames), len(m.TextOverlay))
+	bounds := image.Rect(0, 0, img.Config.Width, img.Config.Height)
 	rStart := time.Now()
-	for i := range srcGif.Image {
-		i, frame := i, srcGif.Image[i]
-		run(func() error {
-			fb := frame.Bounds()
-			img := image.NewRGBA(bounds)
-			draw.Draw(img, fb, frame, fb.Min, draw.Over)
 
-			dc := gg.NewContext(bounds.Dx(), bounds.Dy())
-			for _, f := range lineFrames {
-				if !f.visibleAt(i) {
-					continue
-				}
+	backdrop := image.NewPaletted(bounds, img.Image[0].Palette)
+	for i, frame := range img.Image {
+		fb := frame.Bounds()
+		dst := image.NewPaletted(bounds, frame.Palette)
+		// 1. Draw the backdrop.
+		draw.Draw(dst, bounds, backdrop, image.ZP, draw.Over)
+		// 2. Draw the frame.
+		draw.Draw(dst, fb, frame, fb.Min, draw.Over)
+		// 3. Draw the text.
+		dc := gg.NewContext(bounds.Dx(), bounds.Dy())
+		for _, f := range lineFrames {
+			if f.visibleAt(i) {
 				overlayTextOnImage(dc, f.frame(i), bounds)
 			}
-			text := dc.Image()
-			draw.Draw(img, img.Bounds(), text, text.Bounds().Min, draw.Over)
-			frames[i] = img
-			return nil
-		})
-	}
-	g.Wait()
-	log.Printf("Rendering complete [render %v, total %v]",
-		time.Since(rStart).Round(time.Millisecond), time.Since(start).Round(time.Millisecond))
+		}
+		text := dc.Image()
+		draw.Draw(dst, dst.Bounds(), text, text.Bounds().Min, draw.Over)
+		img.Image[i] = dst
 
-	// Phase 2: Convert the frames back to paletted frames in the GIF.
-	eStart := time.Now()
-	palette := makeColorPalette(frames)
-	for i := range srcGif.Image {
-		i, frame := i, frames[i]
-		run(taskgroup.NoError(func() {
-			// Re-generate the frame.
-			pt := image.NewPaletted(bounds, palette)
-			draw.Draw(pt, bounds, frame, frame.Bounds().Min, draw.Over)
-			srcGif.Image[i] = pt
-		}))
+		// Work out the next frame's backdrop.
+		switch img.Disposal[i] {
+		case gif.DisposalBackground:
+			// Restore background colour.
+			draw.Draw(backdrop, bounds, image.NewUniform(frame.Palette[img.BackgroundIndex]), image.ZP, draw.Over)
+		case gif.DisposalPrevious:
+			// Keep the background the same, i.e. previous frame.
+		case gif.DisposalNone:
+			// Do not dispose of the frame.
+			fallthrough
+		default:
+			draw.Draw(backdrop, fb, frame, fb.Min, draw.Over)
+		}
 	}
-	g.Wait()
-	log.Printf("Re-encoded %d frames [encode %v, total %v]", len(frames),
-		time.Since(eStart).Round(time.Millisecond), time.Since(start).Round(time.Millisecond))
-	return srcGif
+	log.Printf("Rendering complete [render %v]", time.Since(rStart).Round(time.Millisecond))
+	return img
 }

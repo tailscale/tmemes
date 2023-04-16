@@ -2,15 +2,11 @@ package memedraw
 
 import (
 	"image"
-	"image/color"
 	"image/draw"
 	"image/gif"
 	"math"
 
-	"github.com/joshdk/quantize"
 	"github.com/tailscale/tmemes"
-	"golang.org/x/exp/maps"
-	"golang.org/x/exp/slices"
 )
 
 // newFrames constructs a frame tracker for a text line given an animation with
@@ -99,21 +95,4 @@ func copyImage(img *image.Paletted, r image.Rectangle) *image.Paletted {
 
 func mergeImage(onto draw.Image, from image.Image) {
 	draw.Draw(onto, from.Bounds(), from, from.Bounds().Min, draw.Over)
-}
-
-func makeColorPalette(imgs []image.Image) color.Palette {
-	m := make(map[color.Color]int)
-	for _, img := range imgs {
-		for _, c := range quantize.Image(img, 8) {
-			m[c]++
-		}
-	}
-	ps := maps.Keys(m)
-	slices.SortFunc(ps, func(x, y color.Color) bool {
-		return m[x] > m[y]
-	})
-	if len(ps) > 256 {
-		ps = ps[:256]
-	}
-	return ps
 }
