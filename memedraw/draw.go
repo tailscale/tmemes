@@ -9,9 +9,11 @@ import (
 	"image/gif"
 	"log"
 	"math"
+	"runtime"
 	"strings"
 	"time"
 
+	"github.com/creachadair/taskgroup"
 	"github.com/fogleman/gg"
 	"github.com/golang/freetype/truetype"
 	"github.com/tailscale/tmemes"
@@ -134,39 +136,57 @@ func DrawGIF(img *gif.GIF, m *tmemes.Macro) *gif.GIF {
 	bounds := image.Rect(0, 0, img.Config.Width, img.Config.Height)
 	rStart := time.Now()
 
-	backdrop := image.NewPaletted(bounds, img.Image[0].Palette)
-	for i, frame := range img.Image {
-		fb := frame.Bounds()
-		dst := image.NewPaletted(bounds, frame.Palette)
-		// 1. Draw the backdrop.
-		draw.Draw(dst, bounds, backdrop, image.ZP, draw.Over)
-		// 2. Draw the frame.
-		draw.Draw(dst, fb, frame, fb.Min, draw.Over)
-		// 3. Draw the text.
-		dc := gg.NewContext(bounds.Dx(), bounds.Dy())
-		for _, f := range lineFrames {
-			if f.visibleAt(i) {
-				overlayTextOnImage(dc, f.frame(i), bounds)
-			}
-		}
-		text := dc.Image()
-		draw.Draw(dst, dst.Bounds(), text, text.Bounds().Min, draw.Over)
-		img.Image[i] = dst
-
+	// 1st pass: render each frame's background.
+	backdrops := make([]*image.Paletted, len(img.Image))
+	backdrops[0] = image.NewPaletted(bounds, img.Image[0].Palette)
+	draw.Draw(backdrops[0], bounds, image.NewUniform(img.Image[0].Palette[img.BackgroundIndex]), image.ZP, draw.Src)
+	for i := 1; i < len(img.Image); i++ {
+		pal := img.Image[i].Palette
 		// Work out the next frame's backdrop.
 		switch img.Disposal[i] {
 		case gif.DisposalBackground:
 			// Restore background colour.
-			draw.Draw(backdrop, bounds, image.NewUniform(frame.Palette[img.BackgroundIndex]), image.ZP, draw.Over)
+			backdrops[i] = image.NewPaletted(bounds, pal)
+			draw.Draw(backdrops[i], bounds, image.NewUniform(pal[img.BackgroundIndex]), image.ZP, draw.Src)
 		case gif.DisposalPrevious:
 			// Keep the background the same, i.e. previous frame.
+			if i != 0 {
+				backdrops[i] = backdrops[i-1]
+			}
 		case gif.DisposalNone:
 			// Do not dispose of the frame.
 			fallthrough
 		default:
-			draw.Draw(backdrop, fb, frame, fb.Min, draw.Over)
+			backdrops[i] = image.NewPaletted(bounds, pal)
+			draw.Draw(backdrops[i], bounds, backdrops[i-1], image.ZP, draw.Src)
+			draw.Draw(backdrops[i], img.Image[i-1].Bounds(), img.Image[i-1], img.Image[i-1].Bounds().Min, draw.Over)
 		}
 	}
+
+	g, run := taskgroup.New(nil).Limit(runtime.NumCPU())
+	for i, frame := range img.Image {
+		i, frame := i, frame
+		run(taskgroup.NoError(func() {
+			fb := frame.Bounds()
+			dst := image.NewPaletted(bounds, frame.Palette)
+			// 1. Draw the backdrop.
+			draw.Draw(dst, bounds, backdrops[i], image.ZP, draw.Over)
+			// 2. Draw the frame.
+			draw.Draw(dst, fb, frame, fb.Min, draw.Over)
+			// 3. Draw the text.
+			dc := gg.NewContext(bounds.Dx(), bounds.Dy())
+			for _, f := range lineFrames {
+				if f.visibleAt(i) {
+					overlayTextOnImage(dc, f.frame(i), bounds)
+				}
+			}
+			text := dc.Image()
+			draw.Draw(dst, dst.Bounds(), text, text.Bounds().Min, draw.Over)
+			img.Image[i] = dst
+		}))
+	}
+	g.Wait()
+
 	log.Printf("Rendering complete [render %v]", time.Since(rStart).Round(time.Millisecond))
 	return img
 }
