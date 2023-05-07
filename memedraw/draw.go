@@ -136,33 +136,35 @@ func DrawGIF(img *gif.GIF, m *tmemes.Macro) *gif.GIF {
 	bounds := image.Rect(0, 0, img.Config.Width, img.Config.Height)
 	rStart := time.Now()
 
-	// 1st pass: render each frame's background.
+	// 1st pass: render each frame without the text overlay.
+	//
+	// We need to do this because each frame can have its own disposal policy, which usually
+	// depends on the preceding frame. This also means this pass has to be sequential for most
+	// gifs.
 	backdrops := make([]*image.Paletted, len(img.Image))
 	backdrops[0] = image.NewPaletted(bounds, img.Image[0].Palette)
 	draw.Draw(backdrops[0], bounds, image.NewUniform(img.Image[0].Palette[img.BackgroundIndex]), image.ZP, draw.Src)
 	for i := 1; i < len(img.Image); i++ {
 		pal := img.Image[i].Palette
-		// Work out the next frame's backdrop.
-		switch img.Disposal[i] {
+		switch img.Disposal[i-1] {
 		case gif.DisposalBackground:
 			// Restore background colour.
-			backdrops[i] = image.NewPaletted(bounds, pal)
-			draw.Draw(backdrops[i], bounds, image.NewUniform(pal[img.BackgroundIndex]), image.ZP, draw.Src)
+			backdrops[i] = backdrops[0]
 		case gif.DisposalPrevious:
-			// Keep the background the same, i.e. previous frame.
-			if i != 0 {
-				backdrops[i] = backdrops[i-1]
-			}
+			// Keep the backdrops the same, i.e. discard whatever the previous frame drew.
+			backdrops[i] = backdrops[i-1]
 		case gif.DisposalNone:
-			// Do not dispose of the frame.
-			fallthrough
-		default:
+			// Do not dispose of the frame, i.e. the previous frame is this frame's backdrop.
 			backdrops[i] = image.NewPaletted(bounds, pal)
-			draw.Draw(backdrops[i], bounds, backdrops[i-1], image.ZP, draw.Src)
+			copy(backdrops[i].Pix, backdrops[i-1].Pix)
 			draw.Draw(backdrops[i], img.Image[i-1].Bounds(), img.Image[i-1], img.Image[i-1].Bounds().Min, draw.Over)
+		default:
+			backdrops[i] = backdrops[0]
 		}
 	}
+	log.Printf("Prep complete: %v", time.Since(rStart).Round(time.Millisecond))
 
+	// 2nd pass:
 	g, run := taskgroup.New(nil).Limit(runtime.NumCPU())
 	for i, frame := range img.Image {
 		i, frame := i, frame
@@ -187,6 +189,6 @@ func DrawGIF(img *gif.GIF, m *tmemes.Macro) *gif.GIF {
 	}
 	g.Wait()
 
-	log.Printf("Rendering complete [render %v]", time.Since(rStart).Round(time.Millisecond))
+	log.Printf("Rendering complete: %v", time.Since(rStart).Round(time.Millisecond))
 	return img
 }
