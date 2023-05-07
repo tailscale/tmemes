@@ -136,46 +136,55 @@ func DrawGIF(img *gif.GIF, m *tmemes.Macro) *gif.GIF {
 	bounds := image.Rect(0, 0, img.Config.Width, img.Config.Height)
 	rStart := time.Now()
 
-	// 1st pass: render each frame without the text overlay.
-	//
-	// We need to do this because each frame can have its own disposal policy, which usually
-	// depends on the preceding frame. This also means this pass has to be sequential for most
-	// gifs.
 	backdrops := make([]*image.Paletted, len(img.Image))
+	backdropReady := make([]chan struct{}, len(img.Image))
+	for i := range img.Image {
+		backdropReady[i] = make(chan struct{})
+	}
+
+	// Draw first frame's backdrop.
 	backdrops[0] = image.NewPaletted(bounds, img.Image[0].Palette)
 	draw.Draw(backdrops[0], bounds, image.NewUniform(img.Image[0].Palette[img.BackgroundIndex]), image.ZP, draw.Src)
-	for i := 1; i < len(img.Image); i++ {
-		pal := img.Image[i].Palette
-		switch img.Disposal[i-1] {
-		case gif.DisposalBackground:
-			// Restore background colour.
-			backdrops[i] = backdrops[0]
-		case gif.DisposalPrevious:
-			// Keep the backdrops the same, i.e. discard whatever the previous frame drew.
-			backdrops[i] = backdrops[i-1]
-		case gif.DisposalNone:
-			// Do not dispose of the frame, i.e. the previous frame is this frame's backdrop.
-			backdrops[i] = image.NewPaletted(bounds, pal)
-			copy(backdrops[i].Pix, backdrops[i-1].Pix)
-			draw.Draw(backdrops[i], img.Image[i-1].Bounds(), img.Image[i-1], img.Image[i-1].Bounds().Min, draw.Over)
-		default:
-			backdrops[i] = backdrops[0]
-		}
-	}
-	log.Printf("Prep complete: %v", time.Since(rStart).Round(time.Millisecond))
+	close(backdropReady[0])
 
-	// 2nd pass:
 	g, run := taskgroup.New(nil).Limit(runtime.NumCPU())
-	for i, frame := range img.Image {
-		i, frame := i, frame
+	for i := 0; i < len(img.Image); i++ {
+		i, frame := i, img.Image[i]
 		run(taskgroup.NoError(func() {
+			pal := frame.Palette
 			fb := frame.Bounds()
-			dst := image.NewPaletted(bounds, frame.Palette)
-			// 1. Draw the backdrop.
-			draw.Draw(dst, bounds, backdrops[i], image.ZP, draw.Over)
-			// 2. Draw the frame.
+
+			// Block until the required background for this frame is already painted.
+			<-backdropReady[i]
+
+			dst := image.NewPaletted(bounds, pal)
+
+			// Draw the backdrop.
+			copy(dst.Pix, backdrops[i].Pix)
+
+			// Draw the frame.
 			draw.Draw(dst, fb, frame, fb.Min, draw.Over)
-			// 3. Draw the text.
+
+			// Sort out next frame's backdrop, unless we're on the final frame.
+			if i != len(img.Image)-1 {
+				switch img.Disposal[i] {
+				case gif.DisposalBackground:
+					// Restore background colour.
+					backdrops[i+1] = backdrops[0]
+				case gif.DisposalPrevious:
+					// Keep the backdrops the same, i.e. discard whatever this frame drew.
+					backdrops[i+1] = backdrops[i]
+				case gif.DisposalNone:
+					// Do not dispose of the frame, i.e. copy this frame to be next frame's backdrop.
+					backdrops[i+1] = image.NewPaletted(bounds, pal)
+					copy(backdrops[i+1].Pix, dst.Pix)
+				default:
+					backdrops[i+1] = backdrops[0]
+				}
+				close(backdropReady[i+1])
+			}
+
+			// Draw the text overlay.
 			dc := gg.NewContext(bounds.Dx(), bounds.Dy())
 			for _, f := range lineFrames {
 				if f.visibleAt(i) {
