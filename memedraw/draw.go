@@ -144,7 +144,7 @@ func DrawGIF(img *gif.GIF, m *tmemes.Macro) *gif.GIF {
 
 	// Draw first frame's backdrop.
 	backdrops[0] = image.NewPaletted(bounds, img.Image[0].Palette)
-	draw.Draw(backdrops[0], bounds, image.NewUniform(img.Image[0].Palette[img.BackgroundIndex]), image.ZP, draw.Src)
+	draw.Draw(backdrops[0], bounds, image.NewUniform(img.Image[0].Palette[img.BackgroundIndex]), image.Point{}, draw.Src)
 	close(backdropReady[0])
 
 	g, run := taskgroup.New(nil).Limit(runtime.NumCPU())

@@ -1,9 +1,6 @@
 package memedraw
 
 import (
-	"image"
-	"image/draw"
-	"image/gif"
 	"math"
 
 	"github.com/tailscale/tmemes"
@@ -77,22 +74,4 @@ func (f frame) area() tmemes.Area {
 
 	}
 	return cur
-}
-
-func imageBounds(g *gif.GIF) image.Rectangle {
-	var b image.Rectangle
-	for _, v := range g.Image {
-		b = b.Union(v.Bounds())
-	}
-	return b.Sub(b.Min) // normalize to 0, 0
-}
-
-func copyImage(img *image.Paletted, r image.Rectangle) *image.Paletted {
-	cp := image.NewPaletted(r, img.Palette)
-	draw.Draw(cp, img.Bounds(), img, img.Bounds().Min, draw.Src)
-	return cp
-}
-
-func mergeImage(onto draw.Image, from image.Image) {
-	draw.Draw(onto, from.Bounds(), from, from.Bounds().Min, draw.Over)
 }
