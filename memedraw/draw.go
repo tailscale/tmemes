@@ -1,8 +1,7 @@
-// Package draw draws text on a tempate.
+// Package memedraw draws text on a tempate.
 package memedraw
 
 import (
-	_ "embed"
 	"fmt"
 	"image"
 	"image/draw"
@@ -18,6 +17,8 @@ import (
 	"github.com/golang/freetype/truetype"
 	"github.com/tailscale/tmemes"
 	"golang.org/x/image/font"
+
+	_ "embed"
 )
 
 // Preloaded font definition.
