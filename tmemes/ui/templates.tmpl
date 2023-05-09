@@ -7,7 +7,7 @@
 {{template "nav.tmpl" "templates"}}
 <div class="container">
   <h1>Templates</h1>
-  <div class="meme-list">
+  <div class="{{ if gt (len .Macros) 1 }}meme-list{{end}}">
     {{ $caller := .CallerID }}
     {{range .Templates}}
     <div class="meme template-link">

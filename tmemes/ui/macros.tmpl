@@ -8,7 +8,7 @@
 <div class="container">
   {{ $caller := .CallerID }}
   <h1>Macros</h1>
-  <div class="meme-list">
+  <div class="{{ if gt (len .Macros) 1 }}meme-list{{end}}">
     {{range .Macros}}
     <div class="meme">
       <div class="meta byline">
@@ -24,7 +24,6 @@
           <button class="delete macro" delete-id="{{.ID}}">Delete</button>
         {{end}}
       </div>
-
     </div>
     {{end}}
   </div>
