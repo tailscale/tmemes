@@ -29,7 +29,8 @@ terse description of how it all works.
   TS_AUTHKEY=$KEY go run ./tmemes
   ```
 
-  to start the server.
+  to start the server. Make sure your tailnet ACL allows access to this node,
+  and you should be able to visit `http://tmemes` in the browser.
 
 - The server "database" is a directory of files. Use `--data-dir` to set the
   location; it defaults to `/tmp/tmemes`.
