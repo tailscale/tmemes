@@ -28,6 +28,8 @@ import (
 
 // Flag definitions
 var (
+	doVerbose = flag.Bool("v", false, "Enable verbose debug logging")
+
 	// Users with administrative ("super-user") powers. By default, only the
 	// user who created an image can edit or delete it. Marking a user as an
 	// admin gives them permission to edit or delete any image.
@@ -118,9 +120,13 @@ func main() {
 	}
 	defer db.Close()
 
+	logf := logger.Discard
+	if *doVerbose {
+		logf = log.Printf
+	}
 	s := &tsnet.Server{
 		Hostname: *hostName,
-		Logf:     logger.Discard, // TODO: make this configurable?
+		Logf:     logf,
 	}
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
