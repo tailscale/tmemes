@@ -9,6 +9,10 @@
   {{ $caller := .CallerID }}
   <h1>Macros</h1>
   <div class="{{ if gt (len .Macros) 1 }}meme-list{{end}}">
+    <span class="pages">
+    {{if .HasPrevPage}}<a href="?{{sub1 .Page}}">previous page</a>{{end}}
+    {{if .HasNextPage}}<a href="?{{add1 .Page}}">next page</a>{{end}}
+    </span>
     {{range .Macros}}
     <div class="meme">
       <div class="meta byline">
