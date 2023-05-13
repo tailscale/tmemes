@@ -18,11 +18,11 @@ No authentication tokens are required.
 
 - `GET /` serve a UI page for all known macros (equivalent to `/m`)
 
-- `GET /t` serve a UI page for all known templates.
+- `GET /t` serve a UI page for all known templates. Supports [pagination](#pagination).
 
 - `GET /t/:id` serve a UI page for one template by ID.
 
-- `GET /m` serve a UI page for all known templates.
+- `GET /m` serve a UI page for all known templates. Supports [pagination](#pagination).
 
 - `GET /m/:id` serve a UI page for one macro by ID.
 
