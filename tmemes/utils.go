@@ -63,13 +63,13 @@ func sortMacrosByPopularity(ms []*tmemes.Macro) {
 
 // parsePageOptions parses "page" and "count" query parameters from r if they
 // are present. If they are present, they give the page > 0 and count > 0 that
-// the endpoint should return. Otherwise, page < 0 and count = 0. If the count
-// parameter is not specified or is 0, defaultCount is returned.
-// It is an error if these parameters are present but invalid.
+// the endpoint should return. Otherwise, page < 0. If the count parameter is
+// not specified or is 0, defaultCount is returned.  It is an error if these
+// parameters are present but invalid.
 func parsePageOptions(r *http.Request, defaultCount int) (page, count int, _ error) {
 	pageStr := r.FormValue("page")
 	if pageStr == "" {
-		return -1, 0, nil // pagination not requested (ignore count)
+		return -1, defaultCount, nil // pagination not requested (ignore count)
 	}
 	page, err := strconv.Atoi(pageStr)
 	if err != nil {
