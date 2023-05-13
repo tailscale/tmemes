@@ -33,12 +33,24 @@ var ui = template.Must(template.New("ui").Funcs(template.FuncMap{
 	"timestamp": func(ts time.Time) string {
 		return ts.Local().Format(time.Stamp)
 	},
+	"add1": func(z int) int { return z + 1 },
+	"sub1": func(z int) int {
+		if z > 1 {
+			return z - 1
+		}
+		return z
+	},
 }).ParseFS(uiFS, "ui/*.tmpl"))
 
 // uiData is the value passed to HTML templates.
 type uiData struct {
-	Macros        []*uiMacro
-	Templates     []*uiTemplate
+	Macros    []*uiMacro
+	Templates []*uiTemplate
+
+	Page        int  // current page number (1-based; 0 means unpaged)
+	HasNextPage bool // whether there is a next page
+	HasPrevPage bool // whether there is a previous page
+
 	CallerID      tailcfg.UserID
 	AllowAnon     bool
 	CallerIsAdmin bool
@@ -311,10 +323,24 @@ func (s *tmemeServer) serveUITemplates(w http.ResponseWriter, r *http.Request) {
 		return a.CreatedAt.After(b.CreatedAt)
 	})
 
+	page, count, err := parsePageOptions(r, 20)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if page < 0 {
+		page = 1
+	}
+	pageItems, isLast := slicePage(templates, page, count)
+
 	caller := s.getCallerID(r)
+	data := s.newUIData(r.Context(), pageItems, nil, caller)
+	data.Page = page
+	data.HasNextPage = !isLast
+	data.HasPrevPage = page > 1
+
 	w.Header().Set("Content-Type", "text/html")
 	var buf bytes.Buffer
-	data := s.newUIData(r.Context(), templates, nil, caller)
 	if err := ui.ExecuteTemplate(&buf, "templates.tmpl", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -365,9 +391,23 @@ func (s *tmemeServer) serveUIMacros(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	page, count, err := parsePageOptions(r, 20)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	if page < 0 {
+		page = 1
+	}
+	pageItems, isLast := slicePage(macros, page, count)
+
+	data := s.newUIData(r.Context(), s.db.Templates(), pageItems, s.getCallerID(r))
+	data.Page = page
+	data.HasNextPage = !isLast
+	data.HasPrevPage = page > 1
+
 	w.Header().Set("Content-Type", "text/html")
 	var buf bytes.Buffer
-	data := s.newUIData(r.Context(), s.db.Templates(), macros, s.getCallerID(r))
 	if err := ui.ExecuteTemplate(&buf, "macros.tmpl", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
