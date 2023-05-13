@@ -82,7 +82,7 @@ in [tmemes/api.go](../tmemes/api.go).
 
 ## Pagination
 
-For APIs that support paginatino, the query parameters `page=N` and `count=M`
+For APIs that support pagination, the query parameters `page=N` and `count=M`
 specify a subset of the available results, returning the Nth page (N > 0) of up
 to M values. If `count` is omitted a default is chosen. Regardless whether the
 result is paged, the total is the aggregate total for the whole collection.
