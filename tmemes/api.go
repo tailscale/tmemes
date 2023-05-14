@@ -578,12 +578,13 @@ func (s *tmemeServer) serveAPIMacroGet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	pageItems := slicePage(all, page, count)
+	pageItems, isLast := slicePage(all, page, count)
 
 	rsp := struct {
 		M []*tmemes.Macro `json:"macros"`
 		N int             `json:"total"`
-	}{M: pageItems, N: total}
+		L bool            `json:"isLast,omitempty"`
+	}{M: pageItems, N: total, L: isLast}
 	if err := json.NewEncoder(w).Encode(rsp); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -723,12 +724,13 @@ func (s *tmemeServer) serveAPITemplateGet(w http.ResponseWriter, r *http.Request
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	pageItems := slicePage(all, page, count)
+	pageItems, isLast := slicePage(all, page, count)
 
 	rsp := struct {
 		T []*tmemes.Template `json:"templates"`
 		N int                `json:"total"`
-	}{T: pageItems, N: total}
+		L bool               `json:"isLast,omitempty"`
+	}{T: pageItems, N: total, L: isLast}
 	if err := json.NewEncoder(w).Encode(rsp); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}

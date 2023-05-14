@@ -63,13 +63,13 @@ func sortMacrosByPopularity(ms []*tmemes.Macro) {
 
 // parsePageOptions parses "page" and "count" query parameters from r if they
 // are present. If they are present, they give the page > 0 and count > 0 that
-// the endpoint should return. Otherwise, page < 0 and count = 0. If the count
-// parameter is not specified or is 0, defaultCount is returned.
-// It is an error if these parameters are present but invalid.
+// the endpoint should return. Otherwise, page < 0. If the count parameter is
+// not specified or is 0, defaultCount is returned.  It is an error if these
+// parameters are present but invalid.
 func parsePageOptions(r *http.Request, defaultCount int) (page, count int, _ error) {
 	pageStr := r.FormValue("page")
 	if pageStr == "" {
-		return -1, 0, nil // pagination not requested (ignore count)
+		return -1, defaultCount, nil // pagination not requested (ignore count)
 	}
 	page, err := strconv.Atoi(pageStr)
 	if err != nil {
@@ -97,20 +97,22 @@ func parsePageOptions(r *http.Request, defaultCount int) (page, count int, _ err
 
 // slicePage returns the subslice of vs corresponding to the page and count
 // parameters (as returned by parsePageOptions), or nil if the page and count
-// are past the end of vs.
-func slicePage[T any, S ~[]T](vs S, page, count int) S {
+// are past the end of vs. In addition, it reports whether this is the last
+// page of results given these settings.
+func slicePage[T any, S ~[]T](vs S, page, count int) (S, bool) {
 	if page < 0 {
-		return vs // take the whole input, no pagination
+		return vs, true // take the whole input, no pagination
 	}
 	start := (page - 1) * count
 	end := start + count
 	if start >= len(vs) {
-		return nil // the page starts after the end of vs
+		return nil, true // the page starts after the end of vs
 	}
-	if end > len(vs) {
+	if end >= len(vs) {
 		end = len(vs)
+		return vs[start:end], true
 	}
-	return vs[start:end]
+	return vs[start:end], false
 }
 
 func formatEtag(h hash.Hash) string { return fmt.Sprintf(`"%x"`, h.Sum(nil)) }

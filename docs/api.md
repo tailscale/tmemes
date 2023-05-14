@@ -18,11 +18,11 @@ No authentication tokens are required.
 
 - `GET /` serve a UI page for all known macros (equivalent to `/m`)
 
-- `GET /t` serve a UI page for all known templates.
+- `GET /t` serve a UI page for all known templates. Supports [pagination](#pagination).
 
 - `GET /t/:id` serve a UI page for one template by ID.
 
-- `GET /m` serve a UI page for all known templates.
+- `GET /m` serve a UI page for all known templates. Supports [pagination](#pagination).
 
 - `GET /m/:id` serve a UI page for one macro by ID.
 
@@ -82,7 +82,7 @@ in [tmemes/api.go](../tmemes/api.go).
 
 ## Pagination
 
-For APIs that support paginatino, the query parameters `page=N` and `count=M`
+For APIs that support pagination, the query parameters `page=N` and `count=M`
 specify a subset of the available results, returning the Nth page (N > 0) of up
 to M values. If `count` is omitted a default is chosen. Regardless whether the
 result is paged, the total is the aggregate total for the whole collection.
