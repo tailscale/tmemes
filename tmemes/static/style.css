@@ -6,8 +6,9 @@
   --text-muted: #A5AFC4;
   --bg-body: #15141A;
   --bg-cards: #142138;
-  --card-max-height: 400px;
-  --cards-per-page: 20;
+  --card-max-height: 600px;
+  --card-image-max-height: 500px;
+  --cards-per-page: 24;
   --success: green;
   --warn: #c97514;
   --error: #9e0808;
@@ -92,6 +93,11 @@ nav a.active {
   background: var(--dark-grey);
 }
 
+.pages {
+  display: flex;
+  justify-content: center;
+}
+
 /**************************************************
   IMAGE CARDS
 **************************************************/
@@ -120,6 +126,7 @@ nav a.active {
 .meme-list .meme img {
   width: 100%;
   height: auto;
+  max-height: var(--card-image-max-height);
 }
 
 .meme {
