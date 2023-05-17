@@ -6,8 +6,8 @@
   --text-muted: #A5AFC4;
   --bg-body: #15141A;
   --bg-cards: #142138;
-  --card-max-height: 600px;
-  --cards-per-page: 200;
+  --card-max-height: 400px;
+  --cards-per-page: 20;
   --success: green;
   --warn: #c97514;
   --error: #9e0808;
