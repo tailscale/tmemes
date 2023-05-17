@@ -216,7 +216,6 @@ func (s *tmemeServer) serveUICreate(w http.ResponseWriter, r *http.Request) {
 func (s *tmemeServer) serveUICreateGet(w http.ResponseWriter, r *http.Request, t *tmemes.Template) {
 	template := s.newUITemplate(r.Context(), t)
 
-	w.Header().Set("Content-Type", "text/html")
 	var buf bytes.Buffer
 	if err := ui.ExecuteTemplate(&buf, "create.tmpl", template); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -339,7 +338,6 @@ func (s *tmemeServer) serveUITemplates(w http.ResponseWriter, r *http.Request) {
 	data.HasNextPage = !isLast
 	data.HasPrevPage = page > 1
 
-	w.Header().Set("Content-Type", "text/html")
 	var buf bytes.Buffer
 	if err := ui.ExecuteTemplate(&buf, "templates.tmpl", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -406,7 +404,6 @@ func (s *tmemeServer) serveUIMacros(w http.ResponseWriter, r *http.Request) {
 	data.HasNextPage = !isLast
 	data.HasPrevPage = page > 1
 
-	w.Header().Set("Content-Type", "text/html")
 	var buf bytes.Buffer
 	if err := ui.ExecuteTemplate(&buf, "macros.tmpl", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -421,7 +418,6 @@ func (s *tmemeServer) serveUIUpload(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
 	}
-	w.Header().Set("Content-Type", "text/html")
 	var buf bytes.Buffer
 	uiD := s.newUIData(r.Context(), nil, nil, s.getCallerID(r))
 	if err := ui.ExecuteTemplate(&buf, "upload.tmpl", uiD); err != nil {
