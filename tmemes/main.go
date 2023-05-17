@@ -126,6 +126,7 @@ func main() {
 	}
 	s := &tsnet.Server{
 		Hostname: *hostName,
+		Dir:      filepath.Join(*storeDir, "tsnet"),
 		Logf:     logf,
 	}
 
