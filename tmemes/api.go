@@ -68,11 +68,12 @@ func (s *tmemeServer) initialize(ts *tsnet.Server) error {
 	// Preload Etag values.
 	var numTags int
 	for _, t := range s.db.Templates() {
-		tag, err := makeFileEtag(t.Path)
+		tpath, _ := s.db.TemplatePath(t.ID)
+		tag, err := makeFileEtag(tpath)
 		if err != nil {
 			return err
 		}
-		s.imageFileEtags.Store(t.Path, tag)
+		s.imageFileEtags.Store(tpath, tag)
 		numTags++
 	}
 	for _, m := range s.db.Macros() {
@@ -219,19 +220,19 @@ func (s *tmemeServer) serveContentTemplate(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
-	t, err := s.db.Template(idInt)
+	tp, err := s.db.TemplatePath(idInt)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusNotFound)
 		return
 	}
 
 	// Require that the requested extension match how the file is stored.
-	if !strings.HasSuffix(t.Path, ext) {
+	if !strings.HasSuffix(tp, ext) {
 		http.Error(w, "wrong file extension", http.StatusBadRequest)
 		return
 	}
 
-	s.serveFileCached(w, r, t.Path, 365*24*time.Hour)
+	s.serveFileCached(w, r, tp, 365*24*time.Hour)
 }
 
 // serveContentMacro serves macro image content. If the requested macro is not
