@@ -12,6 +12,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	_ "embed"
@@ -45,8 +46,46 @@ func (db *DB) loadSQLiteIndex() error {
 	merr := db.loadMacrosLocked()
 	terr := db.loadTemplatesLocked()
 	derr := db.loadMetadataLocked()
+	mtpErr := db.migrateTemplatePathsLocked()
 
-	return errors.Join(merr, terr, derr)
+	return errors.Join(merr, terr, derr, mtpErr)
+}
+
+func (db *DB) migrateTemplatePathsLocked() error {
+	if db.templates == nil {
+		return errors.New("templates are not loaded")
+	}
+	tx, err := db.sqldb.Begin()
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback()
+	var updated int
+	for _, tmpl := range db.templates {
+		if !filepath.IsAbs(tmpl.Path) {
+			continue // already migrated
+		}
+		// Convert "/path/to/templates/blah" to "templates/blah".
+		i := strings.Index(tmpl.Path, "/templates/")
+		if i < 0 {
+			log.Printf("WARNING: weird template path %q found", tmpl.Path)
+			continue
+		}
+		tmpl.Path = tmpl.Path[i+1:] // +1 for the leading "/"
+		bits, err := json.Marshal(tmpl)
+		if err != nil {
+			return err
+		}
+		if _, err := tx.Exec(`INSERT OR REPLACE INTO Templates (id, raw) VALUES (?, ?)`,
+			tmpl.ID, bits); err != nil {
+			return err
+		}
+		updated++
+	}
+	if updated > 0 {
+		log.Printf("Updated %d absolute template paths", updated)
+	}
+	return tx.Commit()
 }
 
 func (db *DB) loadMacrosLocked() error {
