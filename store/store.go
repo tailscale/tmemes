@@ -271,7 +271,7 @@ func (db *DB) TemplatePath(id int) (string, error) {
 	if !ok {
 		return "", fmt.Errorf("template %d not found", id)
 	}
-	return t.Path, nil
+	return filepath.Join(db.dir, t.Path), nil
 }
 
 // Macro returns the macro data for the specified ID.
@@ -406,7 +406,8 @@ func (db *DB) AddTemplate(t *tmemes.Template, fileExt string, data io.Reader) er
 	db.mu.Lock()
 	defer db.mu.Unlock()
 	id := db.nextTemplateID
-	path := filepath.Join(db.dir, "templates", fmt.Sprintf("%d.%s", id, fileExt))
+	relPath := filepath.Join("templates", fmt.Sprintf("%d.%s", id, fileExt))
+	path := filepath.Join(db.dir, relPath)
 	f, err := os.Create(path)
 	if err != nil {
 		return err
@@ -419,7 +420,7 @@ func (db *DB) AddTemplate(t *tmemes.Template, fileExt string, data io.Reader) er
 		return err
 	}
 	t.ID = id
-	t.Path = path
+	t.Path = relPath // N.B. not path, the data may move
 	db.nextTemplateID++
 	db.templates[t.ID] = t
 	return db.updateTemplateLocked(t)
