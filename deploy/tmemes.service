@@ -1,0 +1,13 @@
+[Unit]
+StartLimitIntervalSec=0
+StartLimitBurst=0
+
+[Service]
+ExecStart=/home/ubuntu/run-tmemes.sh
+WorkingDirectory=/home/ubuntu
+User=ubuntu
+Group=ubuntu
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
