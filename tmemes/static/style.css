@@ -138,6 +138,7 @@ nav a.active {
   display: flex;
   justify-content: center;
   flex-direction: column;
+  background: #000;
 }
 
 .meme {
@@ -166,6 +167,7 @@ nav a.active {
   text-align: left;
   font-size: 0.9rem;
   font-weight: bold;
+  height: 4em;
 }
 
 .actions button {
