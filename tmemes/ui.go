@@ -322,7 +322,7 @@ func (s *tmemeServer) serveUITemplates(w http.ResponseWriter, r *http.Request) {
 		return a.CreatedAt.After(b.CreatedAt)
 	})
 
-	page, count, err := parsePageOptions(r, 20)
+	page, count, err := parsePageOptions(r, 24)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -389,7 +389,7 @@ func (s *tmemeServer) serveUIMacros(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	page, count, err := parsePageOptions(r, 20)
+	page, count, err := parsePageOptions(r, 24)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
