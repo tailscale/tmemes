@@ -124,7 +124,7 @@ nav a.active {
   display: grid;
   grid-gap: 10px;
   align-content: center;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
   padding: 0 40px;
 }
 

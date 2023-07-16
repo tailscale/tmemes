@@ -574,7 +574,7 @@ func (s *tmemeServer) serveAPIMacroGet(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Handle pagination.
-	page, count, err := parsePageOptions(r, 20)
+	page, count, err := parsePageOptions(r, 24)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -720,7 +720,7 @@ func (s *tmemeServer) serveAPITemplateGet(w http.ResponseWriter, r *http.Request
 	total := len(all)
 
 	// Handle pagination.
-	page, count, err := parsePageOptions(r, 20)
+	page, count, err := parsePageOptions(r, 24)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
