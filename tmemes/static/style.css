@@ -6,15 +6,29 @@
   --text-muted: #A5AFC4;
   --bg-body: #15141A;
   --bg-cards: #142138;
-  --cards-per-page: 24;
   --success: green;
   --warn: #c97514;
   --error: #9e0808;
 }
 
+@media (prefers-color-scheme: light) {
+  :root {
+    --grey: #595555;
+    --light-grey: #bbb8b8;
+    --dark-grey: #6f6f6f;
+    --text-body: var(--grey);
+    --text-muted: #66799F;
+    --bg-body: #fff;
+    --bg-cards: #dee9ff;
+    --success: green;
+    --warn: #c97514;
+    --error: #9e0808;
+  }
+}
+
 @font-face {
   font-family: 'Oswald SemiBold';
-  src:  url('/static/font/Oswald-SemiBold.ttf') format('truetype');
+  src: url('/static/font/Oswald-SemiBold.ttf') format('truetype');
 }
 
 * {
@@ -110,11 +124,11 @@ nav a.active {
   display: grid;
   grid-gap: 10px;
   align-content: center;
-  grid-template-columns: repeat(auto-fill, minmax(300px,1fr));
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   padding: 0 40px;
 }
 
-.meme-list > * {
+.meme-list>* {
   margin: 0.5rem;
   display: inline-block;
 }
@@ -188,7 +202,7 @@ nav a.active {
   margin-right: 0.5rem;
 }
 
-.actions .upvote::before{
+.actions .upvote::before {
   content: "+";
 }
 
