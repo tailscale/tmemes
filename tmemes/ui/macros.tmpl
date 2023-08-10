@@ -2,6 +2,10 @@
 <html><head>
   <title>tmemes: putting the meme in TS</title>
   <link rel="stylesheet" type="text/css" href="/static/style.css" />
+  {{- if eq (len .Macros) 1}}{{with index .Macros 0}}
+  <meta property="og:image" content="{{.ImageURL}}" />
+  <meta property="og:url" content="/m/{{.ID}}" />
+ {{end}}{{end}}
 </head>
 <body id="macros">
 {{template "nav.tmpl" "macro"}}
