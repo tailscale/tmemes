@@ -128,9 +128,8 @@ nav a.active {
   padding: 0 40px;
 }
 
-.meme-list>* {
+.meme-list .meme {
   margin: 0.5rem;
-  display: inline-block;
 }
 
 .meme a {
@@ -148,6 +147,7 @@ nav a.active {
   display: flex;
   flex-direction: column;
   max-width: 800px;
+  margin: 0 auto;
 }
 
 .meme .desc {
