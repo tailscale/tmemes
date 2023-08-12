@@ -13,9 +13,6 @@ together with a lovely and inspirational crew of supporters. There's lots more
 fun still to be had, so if you want to jump in, read on! There is also a
 wishlist of TODO items at the bottom.
 
-The source lives in https://tailscale.com/tailscale/tmemes. For now this is a
-private repository, but it doesn't depend on anything proprietary.
-
 ---
 
 ## Synopsis
