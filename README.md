@@ -17,8 +17,8 @@ wishlist of TODO items at the bottom.
 
 ## Synopsis
 
-`tmemes` is a web app built mainly in Go and running on `tsnet`. This is a very
-terse description of how it all works.
+`tmemes` is a web app built mainly in Go and running on [`tsnet`][tsnet]. This
+is a very terse description of how it all works.
 
 - The server is `tmemes`, a standalone Go binary using `tsnet`. Run
 
@@ -61,3 +61,5 @@ terse description of how it all works.
 
 - [API documentation](./docs/api.md)
 - [Task wishlist](https://github.com/tailscale/tmemes/issues/4) (#4)
+
+[tsnet]: https://godoc.org/tailscale.com/tsnet
