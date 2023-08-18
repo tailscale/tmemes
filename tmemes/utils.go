@@ -69,11 +69,18 @@ func sortMacrosByPopularity(ms []*tmemes.Macro) {
 // created very recently, but this bias degrades so that after a while
 // popularity dominates.
 func sortMacrosByScore(ms []*tmemes.Macro) {
+	if len(ms) == 0 {
+		return
+	}
+
+	// Values are pre-ordered by ID and IDs are assigned sequentially, so the
+	// oldest remaining is first.
 	now := time.Now()
+	oldest := now.Sub(ms[0].CreatedAt)
+	recencyWeight := float64(oldest / time.Second)
 	score := func(m *tmemes.Macro) float64 {
-		// Recency bias is an exponentially decaying increment that lasts about 5
-		// days (5 x 24 x 60 = 7200 minutes)
-		rb := 7200 / max(1.0, float64(m.CreatedAt.Sub(now)/time.Minute))
+		// Recency bias is an exponentially decaying increment.
+		rb := recencyWeight / max(1.0, float64(now.Sub(m.CreatedAt)/time.Second))
 		delta := float64(m.Upvotes - m.Downvotes)
 		return delta + rb
 	}
