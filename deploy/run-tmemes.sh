@@ -2,6 +2,8 @@
 set -euo pipefail
 
 data="$HOME/data"
+tar -c --exclude '*/macros/*' "$data" | \
+	zstd -9v > data-backup-"$(date +%Y%m%d%H%M%S)".tar.zst
 
 mkdir -p "$data"
 "$HOME/tmemes" \
@@ -10,4 +12,4 @@ mkdir -p "$data"
 	-cache-max-access-age=96h \
 	-cache-min-prune-mib=8192 \
 	-max-image-size=16 \
-	-store "$data"
+	-store="$data"
