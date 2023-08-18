@@ -7,18 +7,24 @@ set -euo pipefail
 here="$(dirname ${BASH_SOURCE[0]})"
 cd "$here/.."
 
-set -x
-
-year="${1:-2023}"
-vers="${2:-3420000}"
+# Find the latest release version from the SQLite download page.  The easiest
+# way seems to be to grab the embedded product data.
+base='https://www.sqlite.org'
+latest="$(
+  curl -s $base/download.html | \
+    grep ^PRODUCT | grep sqlite-autoconf- | \
+    cut -d, -f3
+)"
+year="$(echo "$latest" | cut -d/ -f1)"
+vers="$(echo "$latest" | cut -d- -f3 | cut -d. -f1)"
 
 img=sqlite:latest
 plat=linux/amd64
 out=./sqlite3-"$vers"
-
-dl="https://www.sqlite.org/${year}/sqlite-autoconf-${vers}.tar.gz"
+dl="$base/$latest"
 
 if [[ -z "$(docker image ls -q "$img")" ]] ; then
+    echo "-- Fetching and building $dl ..." 1>&2
     cat <<EOF | docker build -t sqlite:latest -
 FROM --platform="$plat" ubuntu:20.04 as builder
 
