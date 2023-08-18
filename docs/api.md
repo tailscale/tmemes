@@ -106,6 +106,9 @@ Sort orders currently defined:
 - `top-popular` sorts entries from the last 1 hour in reverse order of creation
   time (as `recent`); entries older than that are sorted by popularity.
 
+- `score` sorts entries by a blended score that is based on popularity but
+  which gives extra weight to recent entries.
+
 ## Filtering
 
 Where relevant, the query parameter `creator=ID` filters for results created by

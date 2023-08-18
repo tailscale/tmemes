@@ -381,7 +381,7 @@ func (s *tmemeServer) serveUIMacros(w http.ResponseWriter, r *http.Request) {
 	} else {
 		macros = append(macros, m)
 	}
-	defaultSort := "top-popular"
+	defaultSort := "score"
 	if v := r.URL.Query().Get("sort"); v != "" {
 		defaultSort = v
 	}

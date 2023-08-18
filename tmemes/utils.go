@@ -38,6 +38,8 @@ func sortMacros(key string, ms []*tmemes.Macro) error {
 		rest := ms[len(top):]
 		sortMacrosByRecency(top)
 		sortMacrosByPopularity(rest)
+	case "score":
+		sortMacrosByScore(ms)
 	default:
 		return fmt.Errorf("invalid sort order %q", key)
 	}
@@ -59,6 +61,24 @@ func sortMacrosByPopularity(ms []*tmemes.Macro) {
 			return a.CreatedAt.After(b.CreatedAt)
 		}
 		return da > db
+	}))
+}
+
+// sortMacrosByScore sorts macros by a heuristic blended "score" that takes
+// into account both recency and popularity. The score favours macros that were
+// created very recently, but this bias degrades so that after a while
+// popularity dominates.
+func sortMacrosByScore(ms []*tmemes.Macro) {
+	now := time.Now()
+	score := func(m *tmemes.Macro) float64 {
+		// Recency bias is an exponentially decaying increment that lasts about 5
+		// days (5 x 24 x 60 = 7200 minutes)
+		rb := 7200 / max(1.0, float64(m.CreatedAt.Sub(now)/time.Minute))
+		delta := float64(m.Upvotes - m.Downvotes)
+		return delta + rb
+	}
+	slices.SortFunc(ms, value.LessCompare(func(a, b *tmemes.Macro) bool {
+		return score(a) > score(b)
 	}))
 }
 
