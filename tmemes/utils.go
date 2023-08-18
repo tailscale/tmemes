@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/creachadair/mds/slice"
+	"github.com/creachadair/mds/value"
 	"github.com/tailscale/tmemes"
 	"golang.org/x/exp/slices"
 )
@@ -44,21 +45,21 @@ func sortMacros(key string, ms []*tmemes.Macro) error {
 }
 
 func sortMacrosByRecency(ms []*tmemes.Macro) {
-	slices.SortFunc(ms, func(a, b *tmemes.Macro) bool {
+	slices.SortFunc(ms, value.LessCompare(func(a, b *tmemes.Macro) bool {
 		return a.CreatedAt.After(b.CreatedAt)
-	})
+	}))
 }
 
 func sortMacrosByPopularity(ms []*tmemes.Macro) {
 	// TODO: what should the definition of this be?
-	slices.SortFunc(ms, func(a, b *tmemes.Macro) bool {
+	slices.SortFunc(ms, value.LessCompare(func(a, b *tmemes.Macro) bool {
 		da := a.Upvotes - a.Downvotes
 		db := b.Upvotes - b.Downvotes
 		if da == db {
 			return a.CreatedAt.After(b.CreatedAt)
 		}
 		return da > db
-	})
+	}))
 }
 
 // parsePageOptions parses "page" and "count" query parameters from r if they
