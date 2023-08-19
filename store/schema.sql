@@ -1,5 +1,5 @@
 -- Database schema for tmemes.
-CREATE TABLE Templates IF NOT EXISTS (
+CREATE TABLE IF NOT EXISTS Templates (
   id INTEGER PRIMARY KEY,
   raw BLOB, -- JSON tmemes.Template
 
