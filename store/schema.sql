@@ -1,7 +1,12 @@
 -- Database schema for tmemes.
-CREATE TABLE IF NOT EXISTS Templates (
+CREATE TABLE Templates (
   id INTEGER PRIMARY KEY,
-  raw BLOB -- JSON tmemes.Template
+  raw BLOB, -- JSON tmemes.Template
+
+  -- Generated columns.
+  creator INTEGER AS (json_extract(raw, '$.creator')) STORED,
+  created_at TIMESTAMP AS (json_extract(raw, '$.createdAt')) STORED,
+  hidden BOOLEAN AS (coalesce(json_extract(raw, '$.hidden'), 0)) STORED
 );
 
 CREATE TRIGGER IF NOT EXISTS TemplateDel
@@ -13,7 +18,12 @@ END;
 
 CREATE TABLE IF NOT EXISTS Macros (
   id INTEGER PRIMARY KEY,
-  raw BLOB -- JSON tmemes.Macro
+  raw BLOB, -- JSON tmemes.Macro
+
+  -- Generated columns.
+  creator INTEGER NULL AS (json_extract(raw, '$.creator')) STORED,
+  created_at TIMESTAMP AS (json_extract(raw, '$.createdAt')) STORED,
+  template_id INTEGER AS (json_extract(raw, '$.templateID')) STORED
 );
 
 CREATE TRIGGER IF NOT EXISTS MacroDel
