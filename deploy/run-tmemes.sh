@@ -2,8 +2,11 @@
 set -euo pipefail
 
 data="$HOME/data"
-tar -c --exclude '*/macros/*' "$data" | \
+(
+    cd "$(dirname "$data")"
+    tar -c --exclude '*/macros/*' data | \
 	zstd -9v > data-backup-"$(date +%Y%m%d%H%M%S)".tar.zst
+)
 
 mkdir -p "$data"
 "$HOME/tmemes" \
