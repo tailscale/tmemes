@@ -8,6 +8,10 @@
 <div class="container">
   {{ $caller := .CallerID }}
   <h1>Macros</h1>
+  {{if or .HasPrevPage .HasNextPage}}<div class="pages">
+  {{if .HasPrevPage}}<a href="?page={{sub1 .Page}}">← previous page</a>{{end}}
+  {{if .HasNextPage}}<a href="?page={{add1 .Page}}">next page →</a>{{end}}
+  </div>{{end}}
   <div class="{{ if gt (len .Macros) 1 }}meme-list{{end}}">
     {{range .Macros}}
     <div class="meme">
@@ -26,10 +30,6 @@
       </div>
     </div>
     {{end}}
-  </div>
-  <div class="pages">
-  {{if .HasPrevPage}}<a href="?page={{sub1 .Page}}">← previous page</a>{{end}}
-  {{if .HasNextPage}}<a href="?page={{add1 .Page}}">next page →</a>{{end}}
   </div>
 </div>
 </body>

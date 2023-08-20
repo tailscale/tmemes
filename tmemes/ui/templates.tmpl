@@ -7,6 +7,10 @@
 {{template "nav.tmpl" "templates"}}
 <div class="container">
   <h1>Templates</h1>
+  {{if or .HasPrevPage .HasNextPage}}<div class="pages">
+  {{if .HasPrevPage}}<a href="?page={{sub1 .Page}}">← previous page</a>{{end}}
+  {{if .HasNextPage}}<a href="?page={{add1 .Page}}">next page →</a>{{end}}
+  </div>{{end}}
   <div class="{{ if gt (len .Templates) 1 }}meme-list{{end}}">
     {{ $caller := .CallerID }}
     {{range .Templates}}
@@ -24,10 +28,6 @@
       </div>
     </div>
     {{- end}}
-  </div>
-  <div class="pages">
-  {{if .HasPrevPage}}<a href="?page={{sub1 .Page}}">← previous page</a>{{end}}
-  {{if .HasNextPage}}<a href="?page={{add1 .Page}}">next page →</a>{{end}}
   </div>
 </div>
 </body>
