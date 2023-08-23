@@ -23,7 +23,7 @@ plat=linux/amd64
 out=./sqlite3-"$vers"
 dl="$base/$latest"
 
-cat <<EOF | docker build -t sqlite:latest -
+cat <<EOF | docker build -t "$img" -
 FROM --platform="$plat" ubuntu:22.04 as builder
 
 WORKDIR /root
