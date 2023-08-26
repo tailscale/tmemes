@@ -26,7 +26,7 @@ import (
 
 // Preloaded font definition.
 var (
-	//go:embed Oswald-Bold.ttf
+	//go:embed Oswald-SemiBold.ttf
 	oswaldSemiBoldBytes []byte
 
 	oswaldSemiBold *truetype.Font
