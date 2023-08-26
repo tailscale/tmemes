@@ -10,6 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
@@ -44,6 +45,7 @@ type Macro struct {
 	Creator     tailcfg.UserID `json:"creator,omitempty"` // -1 for anon
 	CreatedAt   time.Time      `json:"createdAt"`
 	TextOverlay []TextLine     `json:"textOverlay"`
+	ContextLink []ContextLink  `json:"contextLink,omitempty"`
 
 	Upvotes   int `json:"upvotes,omitempty"`
 	Downvotes int `json:"downvotes,omitempty"`
@@ -51,6 +53,8 @@ type Macro struct {
 
 // ValidForCreate reports whether m is valid for the creation of a new macro.
 func (m *Macro) ValidForCreate() error {
+	const maxContextLinks = 3
+
 	switch {
 	case m.ID != 0:
 		return errors.New("macro ID must be zero")
@@ -62,6 +66,21 @@ func (m *Macro) ValidForCreate() error {
 		return errors.New("macro must not contain votes")
 	case m.Creator > 0:
 		return errors.New("invalid macro creator")
+	case len(m.ContextLink) > maxContextLinks:
+		return errors.New("too many context links")
+	}
+
+	// Check and sanitize context links: Remove leading and trailing whitespace,
+	// verify that the link is a syntactically valid "http" or "https" URL, and
+	// then render it properly escaped.
+	for i, cl := range m.ContextLink {
+		u, err := url.Parse(strings.TrimSpace(cl.URL))
+		if err != nil {
+			return fmt.Errorf("invalid context URL: %w", err)
+		} else if u.Scheme != "http" && u.Scheme != "https" {
+			return fmt.Errorf("invalid context link scheme %q", u.Scheme)
+		}
+		m.ContextLink[i].URL = u.String()
 	}
 	for _, tl := range m.TextOverlay {
 		if err := tl.ValidForCreate(); err != nil {
@@ -195,6 +214,12 @@ func (t TextLine) ValidForCreate() error {
 		}
 	}
 	return nil
+}
+
+// ContextLink is a link to explain the context of a macro.
+type ContextLink struct {
+	URL  string `json:"url"`            // required
+	Text string `json:"text,omitempty"` // optional
 }
 
 // MustColor constructs a color from a known color name or hex specification

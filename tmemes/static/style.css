@@ -140,6 +140,11 @@ nav a.active {
   background: #000;
 }
 
+.meme .context a {
+  color: var(--text-body);
+  background: var(--bg-cards);
+}
+
 .meme {
   position: relative;
   background: var(--bg-cards);

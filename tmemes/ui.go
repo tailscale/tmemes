@@ -63,6 +63,7 @@ type uiMacro struct {
 	ImageURL    string
 	CreatorName string
 	CreatorID   tailcfg.UserID
+	ContextLink []tmemes.ContextLink
 	Upvoted     bool
 	Downvoted   bool
 }
@@ -120,6 +121,7 @@ func (s *tmemeServer) newUIData(ctx context.Context, templates []*tmemes.Templat
 			Macro:       m,
 			Template:    mt,
 			ImageURL:    fmt.Sprintf("/content/macro/%d%s", m.ID, mt.Extension),
+			ContextLink: m.ContextLink,
 			CreatorName: s.userDisplayName(ctx, m.Creator, m.CreatedAt),
 			CreatorID:   m.Creator,
 		}

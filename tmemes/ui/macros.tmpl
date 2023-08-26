@@ -27,7 +27,10 @@
         {{ if eq $caller .CreatorID }}
           <button class="delete macro" delete-id="{{.ID}}">Delete</button>
         {{end}}
-      </div>
+      </div>{{if .ContextLink}}
+      <div class="meta context">Context: {{range .ContextLink}}
+        <a href="{{.URL}}" target="_blank" rel="noreferrer noopener">{{or .Text .URL}}</a>{{end}}
+      </div>{{end}}
     </div>
     {{end}}
   </div>
