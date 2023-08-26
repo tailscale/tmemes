@@ -6,13 +6,13 @@
 <body id="templates">
 {{template "nav.tmpl" "templates"}}
 <div class="container">
+  {{ $caller := .CallerID }}{{ $isAdmin := .CallerIsAdmin }}
   <h1>Templates</h1>
   {{if or .HasPrevPage .HasNextPage}}<div class="pages">
   {{if .HasPrevPage}}<a href="?page={{sub1 .Page}}">← previous page</a>{{end}}
   {{if .HasNextPage}}<a href="?page={{add1 .Page}}">next page →</a>{{end}}
   </div>{{end}}
   <div class="{{ if gt (len .Templates) 1 }}meme-list{{end}}">
-    {{ $caller := .CallerID }}
     {{range .Templates}}
     <div class="meme template-link">
       <div class="meta byline">
@@ -22,7 +22,7 @@
         <img src="{{.ImageURL}}" width="{{.Width}}" height="{{.Height}}" loading="lazy" />
       </a>
       <div class="meta actions">
-      {{ if eq $caller .CreatorID }}
+      {{if or (eq $caller .CreatorID) $isAdmin}}
         <button class="delete template" delete-id="{{.ID}}">delete</button>
       {{end}}
       </div>

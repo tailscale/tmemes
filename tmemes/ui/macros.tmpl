@@ -6,7 +6,7 @@
 <body id="macros">
 {{template "nav.tmpl" "macro"}}
 <div class="container">
-  {{ $caller := .CallerID }}
+  {{ $caller := .CallerID }}{{ $isAdmin := .CallerIsAdmin }}
   <h1>Macros</h1>
   {{if or .HasPrevPage .HasNextPage}}<div class="pages">
   {{if .HasPrevPage}}<a href="?page={{sub1 .Page}}">← previous page</a>{{end}}
@@ -24,7 +24,7 @@
       <div class="meta actions">
         <button title="upvote" class="upvote macro {{if .Upvoted}}upvoted{{end}}" upvote-id="{{.ID}}">{{.Upvotes}}</button>
         <button title="downvote" class="downvote macro {{if .Downvoted}}downvoted{{end}}" downvote-id="{{.ID}}">{{.Downvotes}}</button>
-        {{ if eq $caller .CreatorID }}
+        {{if or (eq $caller .CreatorID) $isAdmin}}
           <button class="delete macro" delete-id="{{.ID}}">Delete</button>
         {{end}}
       </div>{{if .ContextLink}}
