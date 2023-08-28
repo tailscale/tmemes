@@ -34,7 +34,7 @@ RUN cd sqlite-autoconf-"$vers" && ./configure --enable-readline && make -j
 EOF
 
 c="$(docker create --platform=$plat $img)"
-trap "docker image rm $img; docker rm $c" EXIT
+trap "docker rm $c; docker image rm $img" EXIT
 mkdir -p "$(dirname "$out")"
 docker cp "$c":/root/sqlite-autoconf-"$vers"/sqlite3 "$out"
 chmod +x "$out"
