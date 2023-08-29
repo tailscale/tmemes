@@ -161,6 +161,7 @@ func (s *tmemeServer) newMux() *http.ServeMux {
 	apiMux := http.NewServeMux()
 	apiMux.HandleFunc("/api/macro/", s.serveAPIMacro)       // one macro by ID
 	apiMux.HandleFunc("/api/macro", s.serveAPIMacro)        // all macros
+	apiMux.HandleFunc("/api/context/", s.serveAPIContext)   // add/remove context
 	apiMux.HandleFunc("/api/template/", s.serveAPITemplate) // one template by ID
 	apiMux.HandleFunc("/api/template", s.serveAPITemplate)  // all templates
 	apiMux.HandleFunc("/api/vote/", s.serveAPIVote)         // caller's vote by ID
@@ -499,6 +500,86 @@ func (s *tmemeServer) serveAPIMacroPost(w http.ResponseWriter, r *http.Request) 
 	if err := s.db.AddMacro(&m); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	if err := json.NewEncoder(w).Encode(m); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (s *tmemeServer) serveAPIContext(w http.ResponseWriter, r *http.Request) {
+	serveMetrics.Add("api-context", 1)
+	switch r.Method {
+	case "POST":
+		s.serveAPIContextPost(w, r)
+	default:
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+	}
+}
+
+// serveAPIContextPost implements the API for adding/removing context links.
+//
+// API: POST /api/context/:id
+//
+// The payload must be of type application/json encoding a tmemes.ContextRequest.
+func (s *tmemeServer) serveAPIContextPost(w http.ResponseWriter, r *http.Request) {
+	whois := s.checkAccess(w, r, "edit macros")
+	if whois == nil {
+		return // error already sent
+	}
+	m, ok, err := getSingleFromIDInPath(r.URL.Path, "api/context", s.db.Macro)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	} else if !ok {
+		http.Error(w, "missing macro ID", http.StatusBadRequest)
+		return
+	}
+
+	if whois.UserProfile.ID != m.Creator && !s.superUser[whois.UserProfile.LoginName] {
+		http.Error(w, "permission denied", http.StatusUnauthorized)
+		return
+	}
+
+	var req tmemes.ContextRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	} else if req.Action != "clear" && req.Link.URL == "" {
+		http.Error(w, "missing context URL", http.StatusBadRequest)
+		return
+	}
+
+	saved := m.ContextLink // in case update fails
+	var needsUpdate bool
+	switch req.Action {
+	case "add":
+		if slices.Index(m.ContextLink, req.Link) < 0 {
+			if len(m.ContextLink) >= tmemes.MaxContextLinks {
+				http.Error(w, "maximum context links already present", http.StatusForbidden)
+				return
+			}
+			m.ContextLink = append(m.ContextLink, req.Link)
+			needsUpdate = true
+		}
+	case "remove":
+		if i := slices.Index(m.ContextLink, req.Link); i >= 0 {
+			m.ContextLink = removeItem(m.ContextLink, i)
+			needsUpdate = true
+		}
+	case "clear":
+		m.ContextLink = nil
+		needsUpdate = len(saved) != 0
+	default:
+		http.Error(w, "invalid action: "+req.Action, http.StatusBadRequest)
+		return
+	}
+	if needsUpdate {
+		if err := s.db.UpdateMacro(m); err != nil {
+			m.ContextLink = saved // restore original state
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(m); err != nil {

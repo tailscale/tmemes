@@ -174,3 +174,12 @@ func makeFileEtag(path string) (string, error) {
 	}
 	return formatEtag(etagHash), nil
 }
+
+// removeItem returns a copy of slice with index i removed.  The original slice
+// is not modified.
+func removeItem[T any, S ~[]T](slice S, i int) S {
+	cp := make(S, len(slice)-1)
+	j := copy(cp, slice[:i])
+	copy(cp[j:], slice[i+1:])
+	return cp
+}

@@ -378,6 +378,17 @@ func (db *DB) DeleteMacro(id int) error {
 	return err
 }
 
+// UpdateMacro updates macro m. It reports an error if m is not already in the
+// store; otherwise it updates the stored data to the current state of m.
+func (db *DB) UpdateMacro(m *tmemes.Macro) error {
+	db.mu.Lock()
+	defer db.mu.Unlock()
+	if _, ok := db.macros[m.ID]; !ok {
+		return fmt.Errorf("macro %d not found", m.ID)
+	}
+	return db.updateMacroLocked(m)
+}
+
 // AddTemplate adds t to the database. The ID must be 0 and the Path must be
 // empty, these are populated by a successful add.  The other fields of t
 // should be initialized by the caller.

@@ -48,6 +48,10 @@ in [tmemes/api.go](../tmemes/api.go).
   This call supports [pagination](#pagination) and [filtering](#filtering).
   Paging past the end returns `"macros":null`.
 
+- `POST /api/context/:id` add, clear, or remove context links on the specified
+  macro by ID. The request body must be a JSON `tmemes.ContextRequest`, and
+  unless the action is `"clear"`, (at least) a link URL is required.
+
 - `(GET|POST|DELETE) /api/template/:id` get, set, delete one template by ID.
   The `POST` body must be `multipart/form-data` (TODO: document keys).
 

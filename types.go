@@ -51,10 +51,11 @@ type Macro struct {
 	Downvotes int `json:"downvotes,omitempty"`
 }
 
+// MaxContextLinks is the maximum number of context links permitted on a macro.
+const MaxContextLinks = 3
+
 // ValidForCreate reports whether m is valid for the creation of a new macro.
 func (m *Macro) ValidForCreate() error {
-	const maxContextLinks = 3
-
 	switch {
 	case m.ID != 0:
 		return errors.New("macro ID must be zero")
@@ -66,7 +67,7 @@ func (m *Macro) ValidForCreate() error {
 		return errors.New("macro must not contain votes")
 	case m.Creator > 0:
 		return errors.New("invalid macro creator")
-	case len(m.ContextLink) > maxContextLinks:
+	case len(m.ContextLink) > MaxContextLinks:
 		return errors.New("too many context links")
 	}
 
@@ -317,4 +318,15 @@ func init() {
 			c2n[c] = n
 		}
 	}
+}
+
+// ContextRequest is the payload for the /api/context handler.
+type ContextRequest struct {
+	// Action specifies what to do with the context links on the macro.
+	// The options are "add", "clear", and "remove".
+	Action string `json:"action"`
+
+	// Link specifies the link to add or remove. At least the URL of the link
+	// must be specified unless Action is "clear".
+	Link ContextLink `json:"link"`
 }
