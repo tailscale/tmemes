@@ -15,7 +15,7 @@ require (
 	golang.org/x/image v0.7.0
 	golang.org/x/sys v0.10.0
 	modernc.org/sqlite v1.21.1
-	tailscale.com v1.48.0
+	tailscale.com v1.48.1
 )
 
 require (
