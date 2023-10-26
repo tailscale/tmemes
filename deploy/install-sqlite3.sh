@@ -30,7 +30,7 @@ out=./sqlite3-"$vers"
 dl="$base/$latest"
 
 cat <<EOF | docker build -t "$img" -
-FROM --platform="$plat" ubuntu:20.04 as builder
+FROM --platform="$plat" "$buildbase" as builder
 
 WORKDIR /root
 
