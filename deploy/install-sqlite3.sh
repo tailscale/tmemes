@@ -9,9 +9,6 @@
 #
 set -euo pipefail
 
-here="$(dirname ${BASH_SOURCE[0]})"
-cd "$here/.."
-
 # Find the latest release version from the SQLite download page.  The easiest
 # way seems to be to grab the embedded product data.
 base='https://www.sqlite.org'
