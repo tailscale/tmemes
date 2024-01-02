@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/creachadair/mds/value"
+	"github.com/creachadair/mds/compare"
 	"github.com/tailscale/tmemes"
 	"golang.org/x/exp/slices"
 	"tailscale.com/tailcfg"
@@ -321,7 +321,7 @@ func (s *tmemeServer) serveUITemplates(w http.ResponseWriter, r *http.Request) {
 	} else {
 		templates = append(templates, t)
 	}
-	slices.SortFunc(templates, value.LessCompare(func(a, b *tmemes.Template) bool {
+	slices.SortFunc(templates, compare.LessCompare(func(a, b *tmemes.Template) bool {
 		return a.CreatedAt.After(b.CreatedAt)
 	}))
 

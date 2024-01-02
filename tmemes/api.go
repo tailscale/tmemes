@@ -24,7 +24,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/creachadair/mds/value"
+	"github.com/creachadair/mds/compare"
 	"github.com/tailscale/tmemes"
 	"github.com/tailscale/tmemes/memedraw"
 	"github.com/tailscale/tmemes/store"
@@ -989,7 +989,7 @@ func (s *tmemeServer) serveAPIVoteGet(w http.ResponseWriter, r *http.Request) {
 	for mid, vote := range uv {
 		votes = append(votes, macroVote{mid, vote})
 	}
-	slices.SortFunc(votes, value.LessCompare(func(a, b macroVote) bool {
+	slices.SortFunc(votes, compare.LessCompare(func(a, b macroVote) bool {
 		return a.M < b.M
 	}))
 
