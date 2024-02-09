@@ -1,8 +1,8 @@
 module github.com/tailscale/tmemes
 
-go 1.21.1
+go 1.22
 
-toolchain go1.21.6
+toolchain go1.22.0
 
 require (
 	github.com/creachadair/mds v0.6.0
@@ -15,7 +15,7 @@ require (
 	golang.org/x/image v0.15.0
 	golang.org/x/sys v0.16.0
 	modernc.org/sqlite v1.28.0
-	tailscale.com v1.1.1-0.20240206205028-b752bde28086
+	tailscale.com v1.1.1-0.20240208021832-2404b1444e82
 )
 
 require (
