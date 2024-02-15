@@ -9,7 +9,7 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/google/go-cmp v0.6.0
 	github.com/slack-go/slack v0.12.1
-	github.com/tailscale/squibble v0.0.0-20240215161315-c12c418291be
+	github.com/tailscale/squibble v0.0.0-20240215192132-61f43c3faf39
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
 	golang.org/x/image v0.15.0
 	golang.org/x/sys v0.16.0
@@ -59,7 +59,7 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/native v1.1.1-0.20230202152459-5c7d0dd6ab86 // indirect
 	github.com/jsimonetti/rtnetlink v1.4.0 // indirect
-	github.com/klauspost/compress v1.17.4 // indirect
+	github.com/klauspost/compress v1.17.6 // indirect
 	github.com/kortschak/wol v0.0.0-20200729010619-da482cc4850a // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mdlayher/genetlink v1.3.2 // indirect

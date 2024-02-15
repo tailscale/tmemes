@@ -126,8 +126,8 @@ github.com/josharian/native v1.1.1-0.20230202152459-5c7d0dd6ab86 h1:elKwZS1OcdQ0
 github.com/josharian/native v1.1.1-0.20230202152459-5c7d0dd6ab86/go.mod h1:aFAMtuldEgx/4q7iSGazk22+IcgvtiC+HIimFO9XlS8=
 github.com/jsimonetti/rtnetlink v1.4.0 h1:Z1BF0fRgcETPEa0Kt0MRk3yV5+kF1FWTni6KUFKrq2I=
 github.com/jsimonetti/rtnetlink v1.4.0/go.mod h1:5W1jDvWdnthFJ7fxYX1GMK07BUpI4oskfOqvPteYS6E=
-github.com/klauspost/compress v1.17.4 h1:Ej5ixsIri7BrIjBkRZLTo6ghwrEtHFk7ijlczPW4fZ4=
-github.com/klauspost/compress v1.17.4/go.mod h1:/dCuZOvVtNoHsyb+cuJD3itjs3NbnF6KH9zAO4BDxPM=
+github.com/klauspost/compress v1.17.6 h1:60eq2E/jlfwQXtvZEeBUYADs+BwKBWURIY+Gj2eRGjI=
+github.com/klauspost/compress v1.17.6/go.mod h1:/dCuZOvVtNoHsyb+cuJD3itjs3NbnF6KH9zAO4BDxPM=
 github.com/kortschak/wol v0.0.0-20200729010619-da482cc4850a h1:+RR6SqnTkDLWyICxS1xpjCi/3dhyV+TgZwA6Ww3KncQ=
 github.com/kortschak/wol v0.0.0-20200729010619-da482cc4850a/go.mod h1:YTtCCM3ryyfiu4F7t8HQ1mxvp1UBdWM2r6Xa+nGWvDk=
 github.com/kr/fs v0.1.0 h1:Jskdu9ieNAYnjxsi0LbQp1ulIKZV1LAFgK1tWhpZgl8=
@@ -199,8 +199,8 @@ github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85 h1:zrsUcqrG2uQ
 github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85/go.mod h1:NzVQi3Mleb+qzq8VmcWpSkcSYxXIg0DkI6XDzpVkhJ0=
 github.com/tailscale/peercred v0.0.0-20240214030740-b535050b2aa4 h1:Gz0rz40FvFVLTBk/K8UNAenb36EbDSnh+q7Z9ldcC8w=
 github.com/tailscale/peercred v0.0.0-20240214030740-b535050b2aa4/go.mod h1:phI29ccmHQBc+wvroosENp1IF9195449VDnFDhJ4rJU=
-github.com/tailscale/squibble v0.0.0-20240215161315-c12c418291be h1:juVPdvh6/hYETMnuJWiEy+Tm28yBTxck1n3YwXc5zig=
-github.com/tailscale/squibble v0.0.0-20240215161315-c12c418291be/go.mod h1:2vcFhOLTIfRRyArWitDy7hgQYECeDfvBwqENs9E1EoU=
+github.com/tailscale/squibble v0.0.0-20240215192132-61f43c3faf39 h1:5HwX13v/KhQrvlmQYqwLM34TN4hvw/8lv46lB2dnO+w=
+github.com/tailscale/squibble v0.0.0-20240215192132-61f43c3faf39/go.mod h1:RW8637GQDM3KYeue4q25c/QkFh7xcMYVNHIa3jXB7ro=
 github.com/tailscale/web-client-prebuilt v0.0.0-20240208184856-443a64766f61 h1:G6/VUGQkHbBffO0s3f51DThcHCWrShlWklcS4Zxh5BU=
 github.com/tailscale/web-client-prebuilt v0.0.0-20240208184856-443a64766f61/go.mod h1:agQPE6y6ldqCOui2gkIh7ZMztTkIQKH049tv8siLuNQ=
 github.com/tailscale/wf v0.0.0-20240214030419-6fbb0a674ee6 h1:l10Gi6w9jxvinoiq15g8OToDdASBni4CyJOdHY1Hr8M=
