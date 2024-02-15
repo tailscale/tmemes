@@ -989,7 +989,7 @@ func (s *tmemeServer) serveAPIVoteGet(w http.ResponseWriter, r *http.Request) {
 	for mid, vote := range uv {
 		votes = append(votes, macroVote{mid, vote})
 	}
-	slices.SortFunc(votes, compare.LessCompare(func(a, b macroVote) bool {
+	slices.SortFunc(votes, compare.FromLessFunc(func(a, b macroVote) bool {
 		return a.M < b.M
 	}))
 

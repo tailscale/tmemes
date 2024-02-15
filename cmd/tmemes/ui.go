@@ -321,7 +321,7 @@ func (s *tmemeServer) serveUITemplates(w http.ResponseWriter, r *http.Request) {
 	} else {
 		templates = append(templates, t)
 	}
-	slices.SortFunc(templates, compare.LessCompare(func(a, b *tmemes.Template) bool {
+	slices.SortFunc(templates, compare.FromLessFunc(func(a, b *tmemes.Template) bool {
 		return a.CreatedAt.After(b.CreatedAt)
 	}))
 

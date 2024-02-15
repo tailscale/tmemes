@@ -3,8 +3,8 @@ module github.com/tailscale/tmemes
 go 1.22.0
 
 require (
-	github.com/creachadair/mds v0.6.0
-	github.com/creachadair/taskgroup v0.6.2
+	github.com/creachadair/mds v0.9.0
+	github.com/creachadair/taskgroup v0.7.1
 	github.com/fogleman/gg v1.3.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/google/go-cmp v0.6.0
