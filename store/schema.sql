@@ -12,8 +12,7 @@ CREATE TABLE IF NOT EXISTS Templates (
 CREATE TRIGGER IF NOT EXISTS TemplateDel
   AFTER DELETE ON Templates FOR EACH ROW
 BEGIN
-  DELETE FROM Macros
-   WHERE json_extract(raw, '$.templateID') = OLD.id;
+  DELETE FROM Macros WHERE template_id = OLD.id;
 END;
 
 CREATE TABLE IF NOT EXISTS Macros (

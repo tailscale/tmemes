@@ -16,12 +16,17 @@ import (
 
 	_ "embed"
 
+	"github.com/tailscale/squibble"
 	"github.com/tailscale/tmemes"
 	"golang.org/x/sys/unix"
 )
 
 //go:embed schema.sql
-var schema string
+var schemaText string
+
+var schema = &squibble.Schema{
+	Current: schemaText,
+}
 
 func openDatabase(url string) (*sql.DB, error) {
 	db, err := sql.Open("sqlite", url)
@@ -31,7 +36,7 @@ func openDatabase(url string) (*sql.DB, error) {
 		db.Close()
 		return nil, err
 	}
-	if _, err := db.Exec(schema); err != nil {
+	if err := schema.Apply(context.Background(), db); err != nil {
 		db.Close()
 		return nil, err
 	}
