@@ -9,10 +9,10 @@ require (
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/google/go-cmp v0.6.0
 	github.com/slack-go/slack v0.12.1
-	github.com/tailscale/squibble v0.0.0-20240216064548-821c939a1abe
+	github.com/tailscale/squibble v0.0.0-20240216065049-13db457377b1
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
 	golang.org/x/image v0.15.0
-	golang.org/x/sys v0.16.0
+	golang.org/x/sys v0.17.0
 	modernc.org/sqlite v1.29.1
 	tailscale.com v1.1.1-0.20240214032109-61a1644c2ac6
 )
@@ -48,7 +48,7 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/google/btree v1.1.2 // indirect
 	github.com/google/nftables v0.1.1-0.20230115205135-9aa6fdf5a28c // indirect
-	github.com/google/uuid v1.5.0 // indirect
+	github.com/google/uuid v1.6.0 // indirect
 	github.com/gorilla/csrf v1.7.2 // indirect
 	github.com/gorilla/securecookie v1.1.2 // indirect
 	github.com/gorilla/websocket v1.4.2 // indirect
