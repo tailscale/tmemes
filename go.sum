@@ -199,8 +199,8 @@ github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85 h1:zrsUcqrG2uQ
 github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85/go.mod h1:NzVQi3Mleb+qzq8VmcWpSkcSYxXIg0DkI6XDzpVkhJ0=
 github.com/tailscale/peercred v0.0.0-20240214030740-b535050b2aa4 h1:Gz0rz40FvFVLTBk/K8UNAenb36EbDSnh+q7Z9ldcC8w=
 github.com/tailscale/peercred v0.0.0-20240214030740-b535050b2aa4/go.mod h1:phI29ccmHQBc+wvroosENp1IF9195449VDnFDhJ4rJU=
-github.com/tailscale/squibble v0.0.0-20240216065049-13db457377b1 h1:bYWQeT6XUSvzlTtEKCeqogjRPLMMMARJxzkaQRqGkww=
-github.com/tailscale/squibble v0.0.0-20240216065049-13db457377b1/go.mod h1:kc7U/pSgBypOTu0fbaMlhtz1sgZMRoNR4eLmxzwd6j8=
+github.com/tailscale/squibble v0.0.0-20240216232345-0a05b1c77db4 h1:S9Toj6f69AfDEf59LLxOrwB7xrniQ1KOR/ac3EXAFvs=
+github.com/tailscale/squibble v0.0.0-20240216232345-0a05b1c77db4/go.mod h1:kc7U/pSgBypOTu0fbaMlhtz1sgZMRoNR4eLmxzwd6j8=
 github.com/tailscale/web-client-prebuilt v0.0.0-20240208184856-443a64766f61 h1:G6/VUGQkHbBffO0s3f51DThcHCWrShlWklcS4Zxh5BU=
 github.com/tailscale/web-client-prebuilt v0.0.0-20240208184856-443a64766f61/go.mod h1:agQPE6y6ldqCOui2gkIh7ZMztTkIQKH049tv8siLuNQ=
 github.com/tailscale/wf v0.0.0-20240214030419-6fbb0a674ee6 h1:l10Gi6w9jxvinoiq15g8OToDdASBni4CyJOdHY1Hr8M=
