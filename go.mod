@@ -3,13 +3,13 @@ module github.com/tailscale/tmemes
 go 1.22.0
 
 require (
-	github.com/creachadair/mds v0.9.0
+	github.com/creachadair/mds v0.10.1
 	github.com/creachadair/taskgroup v0.7.1
 	github.com/fogleman/gg v1.3.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/google/go-cmp v0.6.0
 	github.com/slack-go/slack v0.12.1
-	github.com/tailscale/squibble v0.0.0-20240216232345-0a05b1c77db4
+	github.com/tailscale/squibble v0.0.0-20240218045449-2d1e0acb4c4b
 	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a
 	golang.org/x/image v0.15.0
 	golang.org/x/sys v0.17.0
