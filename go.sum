@@ -48,8 +48,8 @@ github.com/coreos/go-iptables v0.7.0 h1:XWM3V+MPRr5/q51NuWSgU0fqMad64Zyxs8ZUoMsa
 github.com/coreos/go-iptables v0.7.0/go.mod h1:Qe8Bv2Xik5FyTXwgIbLAnv2sWSBmvWdFETJConOQ//Q=
 github.com/coreos/go-systemd/v22 v22.5.0 h1:RrqgGjYQKalulkV8NGVIfkXQf6YYmOyiJKk8iXXhfZs=
 github.com/coreos/go-systemd/v22 v22.5.0/go.mod h1:Y58oyj3AT4RCenI/lSvhwexgC+NSVTIJ3seZv2GcEnc=
-github.com/creachadair/mds v0.10.1 h1:3/VBfMHVvAtmQMmT8kucgD3cbGCLWnUQf1EsvePdUeI=
-github.com/creachadair/mds v0.10.1/go.mod h1:4vrFYUzTXMJpMBU+OA292I6IUxKWCCfZkgXg+/kBZMo=
+github.com/creachadair/mds v0.10.3 h1:rE4chrlYqSgxk97bX8IHQFlPzHI25YhdOAxuNKIKzwI=
+github.com/creachadair/mds v0.10.3/go.mod h1:4vrFYUzTXMJpMBU+OA292I6IUxKWCCfZkgXg+/kBZMo=
 github.com/creachadair/taskgroup v0.7.1 h1:PY4R9Ze58ApFod58YXA7j4RBCFsWP+XP5p3epGab8X0=
 github.com/creachadair/taskgroup v0.7.1/go.mod h1:+1hJc8zL1rQkxcMVqEYJ0UPGtwl6Iz1+fd4zcOLtt+A=
 github.com/creack/pty v1.1.21 h1:1/QdRyBaHHJP61QkWMXlOIBfsgdDeeKfK8SYVUWJKf0=
@@ -199,8 +199,8 @@ github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85 h1:zrsUcqrG2uQ
 github.com/tailscale/netlink v1.1.1-0.20211101221916-cabfb018fe85/go.mod h1:NzVQi3Mleb+qzq8VmcWpSkcSYxXIg0DkI6XDzpVkhJ0=
 github.com/tailscale/peercred v0.0.0-20240214030740-b535050b2aa4 h1:Gz0rz40FvFVLTBk/K8UNAenb36EbDSnh+q7Z9ldcC8w=
 github.com/tailscale/peercred v0.0.0-20240214030740-b535050b2aa4/go.mod h1:phI29ccmHQBc+wvroosENp1IF9195449VDnFDhJ4rJU=
-github.com/tailscale/squibble v0.0.0-20240218045449-2d1e0acb4c4b h1:6jBBI457iA64cw+/AjKFjbEesuXBcXnlQdTb4AN2xOI=
-github.com/tailscale/squibble v0.0.0-20240218045449-2d1e0acb4c4b/go.mod h1:anrjM0zNUAz7MAeDIz2288wQYv7iCZdL7SpHuzpiwRc=
+github.com/tailscale/squibble v0.0.0-20240219023205-30866cf58c6e h1:MUzXT9AZWwvEhm+xOOdb/WkswZCHjDFvKXsE+igQWCs=
+github.com/tailscale/squibble v0.0.0-20240219023205-30866cf58c6e/go.mod h1:HSL7kIOPLhmuGD+J5HrZhSUaTgh7y/6Vn7OWxuSCPmw=
 github.com/tailscale/web-client-prebuilt v0.0.0-20240208184856-443a64766f61 h1:G6/VUGQkHbBffO0s3f51DThcHCWrShlWklcS4Zxh5BU=
 github.com/tailscale/web-client-prebuilt v0.0.0-20240208184856-443a64766f61/go.mod h1:agQPE6y6ldqCOui2gkIh7ZMztTkIQKH049tv8siLuNQ=
 github.com/tailscale/wf v0.0.0-20240214030419-6fbb0a674ee6 h1:l10Gi6w9jxvinoiq15g8OToDdASBni4CyJOdHY1Hr8M=
