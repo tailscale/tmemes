@@ -18,7 +18,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/tailscale/tmemes/bot"
 	"github.com/tailscale/tmemes/store"
 	"tailscale.com/tsnet"
 	"tailscale.com/types/logger"
@@ -64,13 +63,6 @@ var (
 		"Minimum size of macro cache in MiB to trigger a cleanup")
 	cacheSeed = flag.String("cache-seed", "",
 		"Hash seed used to generate cache keys")
-
-	// Experimental features.
-
-	enableSlackBot = flag.Bool("enable-slack-bot", false,
-		"Enable Slack integration (experimental)")
-
-	// TODO(creachadair): Finish and document the Slack integration.
 )
 
 func init() {
@@ -161,17 +153,4 @@ func main() {
 
 	log.Print("it's alive!")
 	http.Serve(ln, ms.newMux())
-}
-
-func startSlackBot() {
-	b, err := bot.NewSlackBot(&bot.Config{
-		Debug: true,
-		// Logf:  logger.Discard,
-	})
-	if err != nil {
-		log.Fatalf("Creating Slack bot: %v", err)
-	}
-	if err := b.Run(); err != nil {
-		log.Fatalf("Running Slack bot: %v", err)
-	}
 }

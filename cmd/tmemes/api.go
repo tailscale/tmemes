@@ -103,10 +103,6 @@ func (s *tmemeServer) initialize(ts *tsnet.Server) error {
 		http.Serve(ln, mux)
 	}()
 
-	// Enable the Slack integration.
-	if *enableSlackBot {
-		go startSlackBot()
-	}
 	return nil
 }
 
