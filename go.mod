@@ -5,16 +5,16 @@ go 1.22.0
 toolchain go1.22.3
 
 require (
-	github.com/creachadair/mds v0.15.0
-	github.com/creachadair/taskgroup v0.9.0
+	github.com/creachadair/mds v0.17.1
+	github.com/creachadair/taskgroup v0.9.1
 	github.com/fogleman/gg v1.3.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/google/go-cmp v0.6.0
 	github.com/slack-go/slack v0.13.0
 	github.com/tailscale/squibble v0.0.0-20240601210838-24fce2c81b7f
-	golang.org/x/exp v0.0.0-20240613232115-7f521ea00fb8
-	golang.org/x/image v0.18.0
-	golang.org/x/sys v0.21.0
+	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa
+	golang.org/x/image v0.19.0
+	golang.org/x/sys v0.24.0
 	modernc.org/sqlite v1.30.1
 	tailscale.com v1.69.0-pre.0.20240626102726-787ead835fdf
 )
@@ -97,14 +97,14 @@ require (
 	github.com/x448/float16 v0.8.4 // indirect
 	go4.org/mem v0.0.0-20220726221520-4f986261bf13 // indirect
 	go4.org/netipx v0.0.0-20231129151722-fdeea329fbba // indirect
-	golang.org/x/crypto v0.24.0 // indirect
-	golang.org/x/mod v0.18.0 // indirect
-	golang.org/x/net v0.26.0 // indirect
-	golang.org/x/sync v0.7.0 // indirect
-	golang.org/x/term v0.21.0 // indirect
-	golang.org/x/text v0.16.0 // indirect
+	golang.org/x/crypto v0.26.0 // indirect
+	golang.org/x/mod v0.20.0 // indirect
+	golang.org/x/net v0.28.0 // indirect
+	golang.org/x/sync v0.8.0 // indirect
+	golang.org/x/term v0.23.0 // indirect
+	golang.org/x/text v0.17.0 // indirect
 	golang.org/x/time v0.5.0 // indirect
-	golang.org/x/tools v0.22.0 // indirect
+	golang.org/x/tools v0.24.0 // indirect
 	golang.zx2c4.com/wintun v0.0.0-20230126152724-0fa3db229ce2 // indirect
 	golang.zx2c4.com/wireguard/windows v0.5.3 // indirect
 	google.golang.org/protobuf v1.33.0 // indirect
