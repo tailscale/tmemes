@@ -6,7 +6,7 @@ toolchain go1.23.0
 
 require (
 	github.com/creachadair/mds v0.17.1
-	github.com/creachadair/taskgroup v0.11.0
+	github.com/creachadair/taskgroup v0.12.0
 	github.com/fogleman/gg v1.3.0
 	github.com/golang/freetype v0.0.0-20170609003504-e2365dfdc4a0
 	github.com/google/go-cmp v0.6.0
