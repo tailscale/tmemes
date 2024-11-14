@@ -154,7 +154,7 @@ func DrawGIF(img *gif.GIF, m *tmemes.Macro) *gif.GIF {
 	g, run := taskgroup.New(nil).Limit(runtime.NumCPU())
 	for i := 0; i < len(img.Image); i++ {
 		i, frame := i, img.Image[i]
-		run(taskgroup.NoError(func() {
+		run.Run(func() {
 			pal := frame.Palette
 			fb := frame.Bounds()
 
@@ -198,7 +198,7 @@ func DrawGIF(img *gif.GIF, m *tmemes.Macro) *gif.GIF {
 			text := dc.Image()
 			draw.Draw(dst, dst.Bounds(), text, text.Bounds().Min, draw.Over)
 			img.Image[i] = dst
-		}))
+		})
 	}
 	g.Wait()
 
