@@ -29,7 +29,7 @@ import (
 	"github.com/tailscale/tmemes/memedraw"
 	"github.com/tailscale/tmemes/store"
 	"golang.org/x/exp/slices"
-	"tailscale.com/client/tailscale"
+	"tailscale.com/client/local"
 	"tailscale.com/client/tailscale/apitype"
 	"tailscale.com/metrics"
 	"tailscale.com/tailcfg"
@@ -41,7 +41,7 @@ import (
 type tmemeServer struct {
 	db             *store.DB
 	srv            *tsnet.Server
-	lc             *tailscale.LocalClient
+	lc             *local.Client
 	superUser      map[string]bool // logins of admin users
 	allowAnonymous bool
 
