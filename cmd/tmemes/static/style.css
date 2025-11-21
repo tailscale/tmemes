@@ -95,6 +95,10 @@ nav a {
   color: var(--bg-cards);
 }
 
+nav :nth-child(1 of a.align-right) {
+  margin-left: auto;
+}
+
 nav a:hover,
 nav a.active {
   color: var(--text-body);
