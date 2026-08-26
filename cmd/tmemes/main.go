@@ -8,24 +8,28 @@ package main
 
 import (
 	"context"
+	"errors"
 	"flag"
 	"fmt"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"syscall"
 	"time"
 
+	"github.com/tailscale/tmemes/server"
 	"github.com/tailscale/tmemes/store"
 	"tailscale.com/tsnet"
+	"tailscale.com/tsweb"
 	"tailscale.com/types/logger"
 
 	_ "modernc.org/sqlite"
 )
 
-// Flag definitions
 var (
 	doVerbose = flag.Bool("v", false, "Enable verbose debug logging")
 
@@ -69,17 +73,17 @@ func init() {
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, `Usage: [TS_AUTHKEY=k] %[1]s <options>
 
-Run an image macro service as a node on a tailnet.  The service listens for
+Run an image macro service as a node on a tailnet. The service listens for
 HTTP requests (not HTTPS) on port 80.
 
 The first time you start %[1]s, you must authenticate its node on the tailnet
-you wnat it to join. To do this, generate an auth key [1] and pass it in via
+you want it to join. To do this, generate an auth key [1] and pass it in via
 the TS_AUTHKEY environment variable:
 
   TS_AUTHKEY=tskey-auth-k______CNTRL-aBC0d1efG2h34iJkLM5nO6pqr7stUV8w9 %[1]s
 
 We recommend you use a tagged auth key so that the node will not expire. Once
-the node is authorized, you can just run the program itself.  The server runs
+the node is authorized, you can just run the program itself. The server runs
 until terminated by SIGINT or SIGTERM.
 
 [1]: https://tailscale.com/kb/1085/auth-keys/
@@ -92,10 +96,17 @@ Options:
 
 func main() {
 	flag.Parse()
+	if err := run(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func run() error {
 	if *storeDir == "" {
-		log.Fatal("You must provide a non-empty --store directory")
-	} else if *maxImageSize <= 0 {
-		log.Fatal("The -max-image-size must be positive")
+		return errors.New("must provide a non-empty --store directory")
+	}
+	if *maxImageSize <= 0 {
+		return errors.New("--max-image-size must be positive")
 	}
 
 	db, err := store.New(*storeDir, &store.Options{
@@ -103,54 +114,93 @@ func main() {
 		MinPruneBytes: *minPruneMiB << 20,
 	})
 	if err != nil {
-		log.Fatalf("Opening store: %v", err)
-	} else if *cacheSeed != "" {
-		err := db.SetCacheSeed(*cacheSeed)
-		if err != nil {
-			log.Fatalf("Setting cache seed: %v", err)
-		}
+		return fmt.Errorf("opening store: %w", err)
 	}
 	defer db.Close()
+	if *cacheSeed != "" {
+		if err := db.SetCacheSeed(*cacheSeed); err != nil {
+			return fmt.Errorf("setting cache seed: %w", err)
+		}
+	}
 
 	logf := logger.Discard
 	if *doVerbose {
 		logf = log.Printf
 	}
-	s := &tsnet.Server{
+	ts := &tsnet.Server{
 		Hostname: *hostName,
 		Dir:      filepath.Join(*storeDir, "tsnet"),
 		Logf:     logf,
 	}
-
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
-	go func() {
-		<-ctx.Done()
-		log.Print("Signal received, stopping server...")
-		s.Close()
-	}()
+	defer ts.Close()
+	if _, err := ts.Up(ctx); err != nil {
+		return fmt.Errorf("starting tsnet: %w", err)
+	}
 
-	ln, err := s.Listen("tcp", ":80")
+	lc, err := ts.LocalClient()
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("creating tsnet local client: %w", err)
 	}
-	defer ln.Close()
-
-	lc, err := s.LocalClient()
+	app, err := server.New(server.Options{
+		DB:             db,
+		LocalClient:    lc,
+		AdminUsers:     splitUsers(*adminUsers),
+		AllowAnonymous: *allowAnonymous,
+		MaxImageBytes:  *maxImageSize << 20,
+	})
 	if err != nil {
-		panic(err)
+		return fmt.Errorf("initializing tmemes: %w", err)
+	}
+	if err := serveDebug(ts); err != nil {
+		return err
 	}
 
-	ms := &tmemeServer{
-		db:             db,
-		srv:            s,
-		lc:             lc,
-		allowAnonymous: *allowAnonymous,
+	ln, err := ts.Listen("tcp", ":80")
+	if err != nil {
+		return fmt.Errorf("listening on :80: %w", err)
 	}
-	if err := ms.initialize(s); err != nil {
-		panic(err)
-	}
+	server := &http.Server{Handler: app.Handler()}
+	serverErr := make(chan error, 1)
+	go func() { serverErr <- server.Serve(ln) }()
 
 	log.Print("it's alive!")
-	http.Serve(ln, ms.newMux())
+	select {
+	case err := <-serverErr:
+		if !errors.Is(err, http.ErrServerClosed) {
+			return fmt.Errorf("serving tmemes: %w", err)
+		}
+		return nil
+	case <-ctx.Done():
+		log.Print("signal received, stopping server...")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := server.Shutdown(shutdownCtx); err != nil {
+			return fmt.Errorf("shutting down server: %w", err)
+		}
+		return nil
+	}
+}
+
+func splitUsers(users string) []string {
+	if users == "" {
+		return nil
+	}
+	return strings.Split(users, ",")
+}
+
+func serveDebug(ts *tsnet.Server) error {
+	ln, err := ts.Listen("tcp", ":8383")
+	if err != nil {
+		return fmt.Errorf("listening for debug requests on :8383: %w", err)
+	}
+	go func() {
+		mux := http.NewServeMux()
+		tsweb.Debugger(mux)
+		if err := http.Serve(ln, mux); err != nil && !errors.Is(err, net.ErrClosed) {
+			log.Printf("debug server: %v", err)
+		}
+	}()
+	return nil
 }
