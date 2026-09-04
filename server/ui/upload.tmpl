@@ -1,0 +1,34 @@
+<!doctype html>
+<html><head>
+  <title>tmemes: putting the meme in TS</title>
+  <link rel="stylesheet" type="text/css" href="/static/style.css" />
+</head>
+<body id="upload">
+{{template "nav.tmpl" "upload"}}
+<div class="container">
+<h1>Upload a Template</h1>
+<form id=upload method=POST enctype="multipart/form-data" action="/api/template">
+ {{if .CSRFFieldName}}<input type=hidden name="{{.CSRFFieldName}}" value="{{.CSRFToken}}" />{{end}}
+ <div class="form-input">
+   <label for=name>Template name (required):</label>
+   <input type=text size=64 name=name id=name required />
+ </div>
+ <div class="form-input">
+   <img id=image-preview />
+   <label for=image>Image (GIF, PNG, or JPG):</label>
+   <input type=file name=image id=image required />
+ </div>
+ {{ if .AllowAnon }}
+ <div class="form-input">
+   <input type=checkbox name=anon value="true" />
+   <label for=anon>Anonymous</label>
+ </div>
+ {{ end }}
+ <div class="form-input">
+   <button class="button">Upload</button>
+ </div>
+</form>
+</div>
+<script src="/static/upload.js"></script>
+</body>
+</html>

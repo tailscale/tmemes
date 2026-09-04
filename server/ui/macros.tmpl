@@ -3,7 +3,7 @@
   <title>tmemes: putting the meme in TS</title>
   <link rel="stylesheet" type="text/css" href="/static/style.css" />
 </head>
-<body id="macros">
+<body id="macros" data-csrf-token="{{.CSRFToken}}">
 {{template "nav.tmpl" "macro"}}
 <div class="container">
   {{ $caller := .CallerID }}{{ $isAdmin := .CallerIsAdmin }}

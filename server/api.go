@@ -1,7 +1,7 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-package main
+package server
 
 import (
 	"context"
@@ -16,6 +16,7 @@ import (
 	"image/png"
 	"io"
 	"log"
+	"mime"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -29,21 +30,48 @@ import (
 	"github.com/tailscale/tmemes/memedraw"
 	"github.com/tailscale/tmemes/store"
 	"golang.org/x/exp/slices"
-	"tailscale.com/client/local"
 	"tailscale.com/client/tailscale/apitype"
+	"tailscale.com/ipn/ipnstate"
 	"tailscale.com/metrics"
 	"tailscale.com/tailcfg"
-	"tailscale.com/tsnet"
-	"tailscale.com/tsweb"
 	"tailscale.com/util/singleflight"
 )
 
+// LocalClient provides the subset of the LocalAPI that tmemes uses for
+// request authorization and user-profile lookup.
+type LocalClient interface {
+	WhoIs(context.Context, string) (*apitype.WhoIsResponse, error)
+	Status(context.Context) (*ipnstate.Status, error)
+}
+
+// Options configures a tmemes server. The caller retains ownership of DB and
+// LocalClient and must keep both usable while serving requests.
+type Options struct {
+	DB             *store.DB
+	LocalClient    LocalClient
+	AdminUsers     []string
+	AllowAnonymous bool
+	MaxImageBytes  int64
+
+	// CSRFToken returns a CSRF token for browser templates. It may be nil for
+	// callers that serve Handler directly without CSRF middleware.
+	CSRFToken func(*http.Request) string
+	// CSRFFieldName is the browser form field that carries CSRFToken.
+	CSRFFieldName string
+	// BrowserMiddleware wraps each browser route. It may be nil.
+	BrowserMiddleware func(http.Handler) http.Handler
+}
+
+// tmemeServer is a tmemes HTTP application.
 type tmemeServer struct {
-	db             *store.DB
-	srv            *tsnet.Server
-	lc             *local.Client
-	superUser      map[string]bool // logins of admin users
-	allowAnonymous bool
+	db                *store.DB
+	lc                LocalClient
+	superUser         map[string]bool // logins of admin users
+	allowAnonymous    bool
+	maxImageBytes     int64
+	csrfToken         func(*http.Request) string
+	csrfFieldName     string
+	browserMiddleware func(http.Handler) http.Handler
 
 	macroGenerationSingleFlight singleflight.Group[string, string]
 	imageFileEtags              sync.Map // :: string(path) → string(quoted etag)
@@ -54,25 +82,42 @@ type tmemeServer struct {
 	lastUpdatedUserProfiles time.Time
 }
 
-// initialize sets up the state of the server and checks the integrity of its
-// database to make it ready to serve. Any error it reports is considered
-// fatal.
-func (s *tmemeServer) initialize(ts *tsnet.Server) error {
-	// Populate superusers.
-	if *adminUsers != "" {
-		s.superUser = make(map[string]bool)
-		for _, u := range strings.Split(*adminUsers, ",") {
+// New creates an initialized tmemes HTTP application. It does not start any
+// listeners or take ownership of the database or LocalAPI client.
+func New(opts Options) (*tmemeServer, error) {
+	if opts.DB == nil {
+		return nil, errors.New("nil database")
+	}
+	if opts.LocalClient == nil {
+		return nil, errors.New("nil local client")
+	}
+	if opts.MaxImageBytes <= 0 {
+		return nil, errors.New("max image size must be positive")
+	}
+	s := &tmemeServer{
+		db:                opts.DB,
+		lc:                opts.LocalClient,
+		allowAnonymous:    opts.AllowAnonymous,
+		maxImageBytes:     opts.MaxImageBytes,
+		csrfToken:         opts.CSRFToken,
+		csrfFieldName:     opts.CSRFFieldName,
+		browserMiddleware: opts.BrowserMiddleware,
+	}
+	if len(opts.AdminUsers) > 0 {
+		s.superUser = make(map[string]bool, len(opts.AdminUsers))
+		for _, u := range opts.AdminUsers {
 			s.superUser[u] = true
 		}
 	}
 
 	// Preload Etag values.
+
 	var numTags int
 	for _, t := range s.db.Templates() {
 		tpath, _ := s.db.TemplatePath(t.ID)
 		tag, err := makeFileEtag(tpath)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		s.imageFileEtags.Store(tpath, tag)
 		numTags++
@@ -83,27 +128,14 @@ func (s *tmemeServer) initialize(ts *tsnet.Server) error {
 		if os.IsNotExist(err) {
 			continue
 		} else if err != nil {
-			return err
+			return nil, err
 		}
 		s.imageFileEtags.Store(cachePath, tag)
 		numTags++
 	}
 	log.Printf("Preloaded %d image Etags", numTags)
 
-	// Set up a metrics server.
-	ln, err := ts.Listen("tcp", ":8383")
-	if err != nil {
-		return err
-	}
-	go func() {
-		defer ln.Close()
-		log.Print("Starting debug server on :8383")
-		mux := http.NewServeMux()
-		tsweb.Debugger(mux)
-		http.Serve(ln, mux)
-	}()
-
-	return nil
+	return s, nil
 }
 
 var (
@@ -117,6 +149,11 @@ func init() {
 }
 
 var errNotFound = errors.New("not found")
+
+func isJSON(r *http.Request) bool {
+	mediaType, _, err := mime.ParseMediaType(r.Header.Get("Content-Type"))
+	return err == nil && mediaType == "application/json"
+}
 
 // userFromID returns the user profile for the given user ID.  If the user
 // profile is not found, it will attempt to fetch the latest user profiles from
@@ -146,48 +183,62 @@ func (s *tmemeServer) userFromID(ctx context.Context, id tailcfg.UserID) (*tailc
 	return &up, nil
 }
 
-// newMux constructs a router for the tmemes API.
-//
-// There are three groups of endpoints:
-//
-//   - The /api/ endpoints serve JSON metadata for tools to consume.
-//   - The /content/ endpoints serve image data.
-//   - The rest of the endpoints serve UI components.
-func (s *tmemeServer) newMux() *http.ServeMux {
-	apiMux := http.NewServeMux()
-	apiMux.HandleFunc("/api/macro/", s.serveAPIMacro)       // one macro by ID
-	apiMux.HandleFunc("/api/macro", s.serveAPIMacro)        // all macros
-	apiMux.HandleFunc("/api/context/", s.serveAPIContext)   // add/remove context
-	apiMux.HandleFunc("/api/template/", s.serveAPITemplate) // one template by ID
-	apiMux.HandleFunc("/api/template", s.serveAPITemplate)  // all templates
-	apiMux.HandleFunc("/api/vote/", s.serveAPIVote)         // caller's vote by ID
-	apiMux.HandleFunc("/api/vote", s.serveAPIVote)          // all caller's votes
-
-	contentMux := http.NewServeMux()
-	contentMux.HandleFunc("/content/template/", s.serveContentTemplate)
-	contentMux.HandleFunc("/content/macro/", s.serveContentMacro)
-
-	uiMux := http.NewServeMux()
-	uiMux.HandleFunc("/macros/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/m/"+r.URL.Path[len("/macros/"):], http.StatusFound)
-	})
-	uiMux.HandleFunc("/templates/", func(w http.ResponseWriter, r *http.Request) {
-		http.Redirect(w, r, "/t/"+r.URL.Path[len("/templates/"):], http.StatusFound)
-	})
-	uiMux.HandleFunc("/t/", s.serveUITemplates)   // view one template by ID
-	uiMux.HandleFunc("/t", s.serveUITemplates)    // view all templates
-	uiMux.HandleFunc("/create/", s.serveUICreate) // view create page for given template ID
-	uiMux.HandleFunc("/m/", s.serveUIMacros)      // view one macro by ID
-	uiMux.HandleFunc("/m", s.serveUIMacros)       // view all macros
-	uiMux.HandleFunc("/", s.serveUIMacros)        // alias for /macros/
-	uiMux.HandleFunc("/upload", s.serveUIUpload)  // template upload view
-
+// BrowserMux returns routes for browser use. Browser state changes receive
+// CSRF protection when a caller serves this mux through suitable middleware.
+func (s *tmemeServer) BrowserMux() *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.Handle("/api/", apiMux)
-	mux.Handle("/content/", contentMux)
-	mux.Handle("/static/", http.FileServer(http.FS(staticFS)))
-	mux.Handle("/", uiMux)
+	handle := func(pattern string, h http.Handler) {
+		if s.browserMiddleware != nil {
+			h = s.browserMiddleware(h)
+		}
+		mux.Handle(pattern, h)
+	}
+	handle("/content/template/", http.HandlerFunc(s.serveContentTemplate))
+	handle("/content/macro/", http.HandlerFunc(s.serveContentMacro))
+	handle("/static/", http.FileServer(http.FS(staticFS)))
+	// Template uploads use multipart/form-data, so route them through the
+	// browser mux where CSRF middleware can protect them.
+	handle("/api/template", http.HandlerFunc(s.serveAPITemplate))
+	handle("/api/template/", http.HandlerFunc(s.serveAPITemplate))
+	handle("/macros/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/m/"+r.URL.Path[len("/macros/"):], http.StatusFound)
+	}))
+	handle("/templates/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.Redirect(w, r, "/t/"+r.URL.Path[len("/templates/"):], http.StatusFound)
+	}))
+	handle("/t/", http.HandlerFunc(s.serveUITemplates))
+	handle("/t", http.HandlerFunc(s.serveUITemplates))
+	handle("/create/", http.HandlerFunc(s.serveUICreate))
+	handle("/m/", http.HandlerFunc(s.serveUIMacros))
+	handle("/m", http.HandlerFunc(s.serveUIMacros))
+	handle("/upload", http.HandlerFunc(s.serveUIUpload))
+	handle("/", http.HandlerFunc(s.serveUIMacros))
+	return mux
+}
 
+// APIMux returns programmatic tmemes API routes. The template upload endpoint
+// remains in BrowserMux so callers can protect browser form submissions.
+func (s *tmemeServer) APIMux() *http.ServeMux {
+	mux := http.NewServeMux()
+	// Preserve Handler's API 404 behavior for unknown /api/ paths when this
+	// mux is served alongside BrowserMux by safeweb.
+	mux.HandleFunc("/api/", http.NotFound)
+	mux.HandleFunc("/api/macro/", s.serveAPIMacro)
+	mux.HandleFunc("/api/macro", s.serveAPIMacro)
+	mux.HandleFunc("/api/context/", s.serveAPIContext)
+	mux.HandleFunc("/api/vote/", s.serveAPIVote)
+	mux.HandleFunc("/api/vote", s.serveAPIVote)
+	return mux
+}
+
+// Handler returns the complete raw HTTP application for standalone callers.
+func (s *tmemeServer) Handler() *http.ServeMux {
+	browser, api := s.BrowserMux(), s.APIMux()
+	mux := http.NewServeMux()
+	mux.Handle("/api/template", browser)
+	mux.Handle("/api/template/", browser)
+	mux.Handle("/api/", api)
+	mux.Handle("/", browser)
 	return mux
 }
 
@@ -467,6 +518,10 @@ func (s *tmemeServer) checkAccess(w http.ResponseWriter, r *http.Request, op str
 // The payload must be of type application/json encoding a tmemes.Macro.  On
 // success, the filled-in macro object is written back to the caller.
 func (s *tmemeServer) serveAPIMacroPost(w http.ResponseWriter, r *http.Request) {
+	if !isJSON(r) {
+		http.Error(w, "expected application/json", http.StatusUnsupportedMediaType)
+		return
+	}
 	whois := s.checkAccess(w, r, "create macros")
 	if whois == nil {
 		return // error already sent
@@ -519,6 +574,10 @@ func (s *tmemeServer) serveAPIContext(w http.ResponseWriter, r *http.Request) {
 //
 // The payload must be of type application/json encoding a tmemes.ContextRequest.
 func (s *tmemeServer) serveAPIContextPost(w http.ResponseWriter, r *http.Request) {
+	if !isJSON(r) {
+		http.Error(w, "expected application/json", http.StatusUnsupportedMediaType)
+		return
+	}
 	whois := s.checkAccess(w, r, "edit macros")
 	if whois == nil {
 		return // error already sent
@@ -855,7 +914,7 @@ func (s *tmemeServer) serveAPITemplatePost(w http.ResponseWriter, r *http.Reques
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if header.Size > *maxImageSize<<20 {
+	if header.Size > s.maxImageBytes {
 		http.Error(w, "image too large", http.StatusBadRequest)
 		return
 	}

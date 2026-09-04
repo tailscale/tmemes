@@ -11,5 +11,5 @@ fi
 
 # Build and link a new binary.
 bin="tmemes-$(date +%Y%m%d%H%M%S).bin"
-( cd repo && go build -o "../${bin}" ./tmemes )
+( cd repo && go build -o "../${bin}" ./cmd/tmemes )
 ln -s -f "$bin" ./tmemes

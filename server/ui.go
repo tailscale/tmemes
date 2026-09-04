@@ -1,7 +1,7 @@
 // Copyright (c) Tailscale Inc & AUTHORS
 // SPDX-License-Identifier: BSD-3-Clause
 
-package main
+package server
 
 import (
 	"bytes"
@@ -45,8 +45,10 @@ var ui = template.Must(template.New("ui").Funcs(template.FuncMap{
 
 // uiData is the value passed to HTML templates.
 type uiData struct {
-	Macros    []*uiMacro
-	Templates []*uiTemplate
+	Macros        []*uiMacro
+	Templates     []*uiTemplate
+	CSRFToken     string
+	CSRFFieldName string
 
 	Page        int  // current page number (1-based; 0 means unpaged)
 	HasNextPage bool // whether there is a next page
@@ -70,6 +72,7 @@ type uiMacro struct {
 
 type uiTemplate struct {
 	*tmemes.Template
+	CSRFToken   string
 	ImageURL    string
 	Extension   string
 	CreatorName string
@@ -188,6 +191,18 @@ func getSingleFromIDInPath[T any](path, key string, f func(int) (T, error)) (T, 
 	return v, true, nil
 }
 
+func (s *tmemeServer) csrfTokenFor(r *http.Request) string {
+	if s.csrfToken == nil {
+		return ""
+	}
+	return s.csrfToken(r)
+}
+
+func (s *tmemeServer) setCSRF(data *uiData, r *http.Request) {
+	data.CSRFToken = s.csrfTokenFor(r)
+	data.CSRFFieldName = s.csrfFieldName
+}
+
 func (s *tmemeServer) serveUICreate(w http.ResponseWriter, r *http.Request) {
 	serveMetrics.Add("ui-create", 1)
 	id := strings.TrimPrefix(r.URL.Path, "/create/")
@@ -217,10 +232,11 @@ func (s *tmemeServer) serveUICreate(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *tmemeServer) serveUICreateGet(w http.ResponseWriter, r *http.Request, t *tmemes.Template) {
-	template := s.newUITemplate(r.Context(), t)
+	data := s.newUITemplate(r.Context(), t)
+	data.CSRFToken = s.csrfTokenFor(r)
 
 	var buf bytes.Buffer
-	if err := ui.ExecuteTemplate(&buf, "create.tmpl", template); err != nil {
+	if err := ui.ExecuteTemplate(&buf, "create.tmpl", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -337,6 +353,7 @@ func (s *tmemeServer) serveUITemplates(w http.ResponseWriter, r *http.Request) {
 
 	caller := s.getCallerID(r)
 	data := s.newUIData(r.Context(), pageItems, nil, caller)
+	data.CSRFToken = s.csrfTokenFor(r)
 	data.Page = page
 	data.HasNextPage = !isLast
 	data.HasPrevPage = page > 1
@@ -403,6 +420,7 @@ func (s *tmemeServer) serveUIMacros(w http.ResponseWriter, r *http.Request) {
 	pageItems, isLast := slicePage(macros, page, count)
 
 	data := s.newUIData(r.Context(), s.db.Templates(), pageItems, s.getCallerID(r))
+	data.CSRFToken = s.csrfTokenFor(r)
 	data.Page = page
 	data.HasNextPage = !isLast
 	data.HasPrevPage = page > 1
@@ -423,6 +441,7 @@ func (s *tmemeServer) serveUIUpload(w http.ResponseWriter, r *http.Request) {
 	}
 	var buf bytes.Buffer
 	uiD := s.newUIData(r.Context(), nil, nil, s.getCallerID(r))
+	s.setCSRF(uiD, r)
 	if err := ui.ExecuteTemplate(&buf, "upload.tmpl", uiD); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
