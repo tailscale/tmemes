@@ -3,7 +3,7 @@
   <title>tmemes: putting the meme in TS</title>
   <link rel="stylesheet" type="text/css" href="/static/style.css" />
 </head>
-<body id="create">
+<body id="create" data-csrf-token="{{.CSRFToken}}">
 {{template "nav.tmpl" ""}}
 <div class="container">
   <h1>Create your own version of {{.Name}}</h1>

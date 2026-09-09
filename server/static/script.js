@@ -72,6 +72,10 @@
     }
   }
 
+  function csrfHeaders() {
+    return { "X-CSRF-Token": document.body.dataset.csrfToken };
+  }
+
   function submitMacro(id) {
     values = readTextValues();
     fetch(`/create/${id}`, {
@@ -79,6 +83,7 @@
       headers: {
         Accept: "application/json",
         "Content-Type": "application/json",
+        ...csrfHeaders(),
       },
       body: JSON.stringify(values),
     })
@@ -103,6 +108,7 @@
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
+          ...csrfHeaders(),
         },
       })
         .then(function () {
@@ -125,6 +131,7 @@
         headers: {
           Accept: "application/json",
           "Content-Type": "application/json",
+          ...csrfHeaders(),
         },
       })
         .then(function () {
@@ -226,6 +233,7 @@
   function unvoteMacro(id, upvoteElement, downvoteElement) {
     fetch(`/api/vote/${id}`, {
       method: "DELETE",
+      headers: csrfHeaders(),
     })
       .then(function (response) {
         response.json().then((data) => {
@@ -242,6 +250,7 @@
   function downvoteMacro(id, upvoteElement, downvoteElement) {
     fetch(`/api/vote/${id}/down`, {
       method: "PUT",
+      headers: csrfHeaders(),
     })
       .then(function (response) {
         response.json().then((data) => {
@@ -258,6 +267,7 @@
   function upvoteMacro(id, upvoteElement, downvoteElement) {
     fetch(`/api/vote/${id}/up`, {
       method: "PUT",
+      headers: csrfHeaders(),
     })
       .then(function (response) {
         response.json().then((data) => {
